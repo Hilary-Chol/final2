@@ -1,0 +1,1458 @@
+/*
+import { apiRequest } from './services/api';
+
+function toKeywords(value) {
+  return value
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function formatDate(value) {
+  return new Date(value).toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
+  // Landing page
+  if (currentPage === 'landing') {
+      return;
+      <div className="container">
+        <header className="header">
+          <h1>Civira Recruitment Platform</h1>
+          <p>Apply for jobs, track your applications</p>
+        </header>
+
+        <div className="nav-tabs">
+          <button
+            className={`nav-btn ${!authenticated ? 'active' : ''}`}
+            onClick={() => setCurrentPage('browse')}
+          >
+            Browse Jobs
+          </button>
+          {!authenticated && (
+            <>
+              <button className="nav-btn" onClick={() => setCurrentPage('register')}>
+                Register
+              </button>
+              <button className="nav-btn" onClick={() => setCurrentPage('login')}>
+                Login
+              </button>
+            </>
+          )}
+          {authenticated && (
+            <>
+              <button className="nav-btn" onClick={() => setCurrentPage('dashboard')}>
+                My Dashboard
+              </button>
+              <button className="nav-btn logout" onClick={() => { clearSession(); setCurrentPage('landing'); }}>
+                Logout ({applicant?.fullName})
+              </button>
+            </>
+          )}
+        </div>
+
+        <section className="jobs-section">
+          <h2>Open Jobs</h2>
+          {jobs.length === 0 ? (
+            <p>No jobs available at the moment. Check back soon!</p>
+          ) : (
+            <div className="jobs-grid">
+              // Register page
+              if (currentPage === 'register') {
+                return (
+                  <div className="container">
+                    <header className="header">
+                      <h1>Create Your Account</h1>
+                      <button className="btn-link" onClick={() => handleNavClick('landing')}>← Back</button>
+                    </header>
+
+                    <div className="form-container">
+                      <form className="form-group" onSubmit={handleRegister}>
+                        <h2>Register as Applicant</h2>
+    try {
+                        <input
+                          type="text"
+                          placeholder="Full Name"
+                          value={registerForm.fullName}
+                          onChange={(e) => setRegisterForm(prev => ({ ...prev, fullName: e.target.value }))}
+                          required
+                        />
+
+                        <input
+                          type="email"
+                          placeholder="Email"
+                          value={registerForm.email}
+                          onChange={(e) => setRegisterForm(prev => ({ ...prev, email: e.target.value }))}
+                          required
+                        />
+
+                        <input
+                          type="password"
+                          placeholder="Password (minimum 6 characters)"
+                          value={registerForm.password}
+                          onChange={(e) => setRegisterForm(prev => ({ ...prev, password: e.target.value }))}
+                          required
+                          minLength="6"
+                        />
+
+                        <input
+                          type="tel"
+                          placeholder="Phone (optional)"
+                          value={registerForm.phone}
+                          onChange={(e) => setRegisterForm(prev => ({ ...prev, phone: e.target.value }))}
+                        />
+
+                        <input
+                          type="text"
+                          placeholder="Location (optional)"
+                          value={registerForm.location}
+                          onChange={(e) => setRegisterForm(prev => ({ ...prev, location: e.target.value }))}
+                        />
+
+                        <select
+                          value={registerForm.experienceLevel}
+                          onChange={(e) => setRegisterForm(prev => ({ ...prev, experienceLevel: e.target.value }))}
+                        >
+                          <option value="entry">Entry Level</option>
+                          <option value="mid">Mid Level</option>
+                          <option value="senior">Senior</option>
+                          <option value="executive">Executive</option>
+                        </select>
+
+                        <input
+                          type="text"
+                          placeholder="Skills (comma-separated, optional)"
+                          value={registerForm.skills}
+                          onChange={(e) => setRegisterForm(prev => ({ ...prev, skills: e.target.value }))}
+                        />
+
+                        <button type="submit" className="btn-primary">Create Account</button>
+
+                        {message && (
+                          <div className={`message ${success ? 'success' : 'error'}`}>
+                            {message}
+                          </div>
+                        )}
+
+                        <p className="form-link">
+                          Already have an account? <button type="button" className="btn-link" onClick={() => handleNavClick('login')}>Login</button>
+                        </p>
+                      </form>
+                    </div>
+                  </div>
+                );
+              }
+
+              // Login page
+              if (currentPage === 'login') {
+                return (
+                  <div className="container">
+                    <header className="header">
+                      <h1>Login</h1>
+                      <button className="btn-link" onClick={() => handleNavClick('landing')}>← Back</button>
+                    </header>
+
+                    <div className="form-container">
+                      <form className="form-group" onSubmit={handleLogin}>
+                        <h2>Login to Your Account</h2>
+
+                        <input
+                          type="email"
+                          placeholder="Email"
+                          value={loginForm.email}
+                          onChange={(e) => setLoginForm(prev => ({ ...prev, email: e.target.value }))}
+                          required
+                        />
+
+                        <input
+                          type="password"
+                          placeholder="Password"
+                          value={loginForm.password}
+                          onChange={(e) => setLoginForm(prev => ({ ...prev, password: e.target.value }))}
+                          required
+                        />
+
+                        <button type="submit" className="btn-primary">Login</button>
+
+                        {message && (
+                          <div className={`message ${success ? 'success' : 'error'}`}>
+                            {message}
+                          </div>
+                        )}
+
+                        <p className="form-link">
+                          Don't have an account? <button type="button" className="btn-link" onClick={() => handleNavClick('register')}>Register</button>
+                        </p>
+                      </form>
+                    </div>
+                  </div>
+                );
+              }
+
+              // Browse jobs page
+              if (currentPage === 'browse') {
+                return (
+                  <div className="container">
+                    <header className="header">
+                      <h1>Browse Jobs</h1>
+                      <button className="btn-link" onClick={() => handleNavClick('landing')}>← Back to Home</button>
+                    </header>
+
+                    <section className="jobs-section">
+                      {jobs.length === 0 ? (
+                        <p>No jobs available at the moment. Check back soon!</p>
+                      ) : (
+                        <div className="jobs-grid">
+                          {jobs.map((job) => (
+                            <div key={job.id} className="job-card">
+                              <h3>{job.title}</h3>
+                              <p className="job-description">{job.description}</p>
+                              <p className="job-keywords">
+                                <strong>Keywords:</strong> {Array.isArray(job.criteria_keywords) ? job.criteria_keywords.join(', ') : 'Not specified'}
+                              </p>
+                              <p className="job-status">Status: <span className={job.status}>{job.status}</span></p>
+                              {authenticated && (
+                                <button className="btn-primary" onClick={() => { setCurrentPage('apply'); setApplicationForm(prev => ({ ...prev, jobId: String(job.id) })); }}>
+                                  Apply Now
+                                </button>
+                              )}
+                              {!authenticated && (
+                                <button className="btn-secondary" onClick={() => handleNavClick('login')}>
+                                  Login to Apply
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </section>
+                  </div>
+                );
+              }
+
+              // Apply for job page
+              if (currentPage === 'apply') {
+                if (!authenticated) {
+                  return (
+                    <div className="container">
+                      <div className="message error">
+                        You must be logged in to apply for jobs. <button className="btn-link" onClick={() => handleNavClick('login')}>Login here</button>
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="container">
+                    <header className="header">
+                      <h1>Apply for Job</h1>
+                      <button className="btn-link" onClick={() => handleNavClick('dashboard')}>← Back to Dashboard</button>
+                    </header>
+
+                    <div className="form-container">
+                      <form className="form-group" onSubmit={handleApply}>
+                        <h2>Job Application</h2>
+
+                        <select
+                          value={applicationForm.jobId}
+                          onChange={(e) => setApplicationForm(prev => ({ ...prev, jobId: e.target.value }))}
+                          required
+                        >
+                          <option value="">Select a job</option>
+                          {jobs.map((job) => (
+                            <option key={job.id} value={job.id}>
+                              {job.title}
+                            </option>
+                          ))}
+                        </select>
+
+                        {selectedJob && (
+                          <div className="job-preview">
+                            <h3>{selectedJob.title}</h3>
+                            <p>{selectedJob.description}</p>
+                            <p><strong>Required Keywords:</strong> {Array.isArray(selectedJob.criteria_keywords) ? selectedJob.criteria_keywords.join(', ') : 'Not specified'}</p>
+                          </div>
+                        )}
+
+                        <input
+                          type="number"
+                          placeholder="Qualification Score (0-100)"
+                          value={applicationForm.qualificationScore}
+                          onChange={(e) => setApplicationForm(prev => ({ ...prev, qualificationScore: e.target.value }))}
+                          min="0"
+                          max="100"
+                          step="0.01"
+                        />
+
+                        <input
+                          type="number"
+                          placeholder="Years of Experience"
+                          value={applicationForm.experienceYears}
+                          onChange={(e) => setApplicationForm(prev => ({ ...prev, experienceYears: e.target.value }))}
+                          min="0"
+                          step="0.5"
+                        />
+
+                        <textarea
+                          placeholder="Profile Keywords (comma-separated)"
+                          value={applicationForm.profileKeywords}
+                          onChange={(e) => setApplicationForm(prev => ({ ...prev, profileKeywords: e.target.value }))}
+                          rows="3"
+                        ></textarea>
+
+                        <div className="resume-upload">
+                          <label htmlFor="resume-input">Upload Resume (PDF, DOCX, or TXT)</label>
+                          <input
+                            id="resume-input"
+                            type="file"
+                            accept=".pdf,.docx,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+                            onChange={(e) => setApplicationResume(e.target.files?.[0] || null)}
+                          />
+                          {applicationResume && <p className="upload-status">✓ {applicationResume.name}</p>}
+                        </div>
+
+                        <button type="submit" className="btn-primary">Submit Application</button>
+
+                        {message && (
+                          <div className={`message ${success ? 'success' : 'error'}`}>
+                            {message}
+                          </div>
+                        )}
+                      </form>
+                    </div>
+                  </div>
+                );
+              }
+
+              // Dashboard page
+              if (currentPage === 'dashboard') {
+                if (!authenticated) {
+                  return (
+                    <div className="container">
+                      <div className="message error">
+                        You must be logged in to access the dashboard. <button className="btn-link" onClick={() => handleNavClick('login')}>Login here</button>
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="container">
+                    <header className="header">
+                      <h1>My Dashboard</h1>
+                      <div className="user-info">
+                        Welcome, {applicant.fullName}!
+                        <button className="btn-link logout" onClick={() => { clearSession(); handleNavClick('landing'); }}>Logout</button>
+                      </div>
+                    </header>
+
+                    <div className="nav-tabs">
+                      <button className="nav-btn active">Applications</button>
+                      <button className="nav-btn" onClick={() => setCurrentPage('profile')}>Profile</button>
+                    </div>
+
+                    <section className="applications-section">
+                      <h2>My Applications</h2>
+                      <button className="btn-primary" onClick={() => handleNavClick('apply')}>+ Apply for Job</button>
+
+                      {myApplications.length === 0 ? (
+                        <p className="no-data">You haven't applied for any jobs yet.</p>
+                      ) : (
+                        <div className="applications-list">
+                          {myApplications.map((app) => (
+                            <div key={app.id} className="application-card">
+                              <div className="app-header">
+                                <h3>{app.job_title}</h3>
+                                <span className={`status-badge ${app.rank_position ? 'shortlisted' : 'pending'}`}>
+                                  {app.rank_position ? `Shortlisted (#${app.rank_position})` : 'Under Review'}
+                                </span>
+                              </div>
+                              <div className="app-details">
+                                <p><strong>Candidate Code:</strong> {app.candidate_code}</p>
+                                <p><strong>Applied:</strong> {formatDate(app.created_at)}</p>
+                                {app.rank_position && <p><strong>Ranking Score:</strong> {parseFloat(app.ranking_score).toFixed(2)}</p>}
+                                {app.score_count > 0 && <p><strong>Panel Reviews:</strong> {app.score_count}</p>}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </section>
+                  </div>
+                );
+              }
+
+              // Profile page
+              if (currentPage === 'profile') {
+                if (!authenticated) {
+                  return (
+                    <div className="container">
+                      <div className="message error">
+                        You must be logged in to access the profile. <button className="btn-link" onClick={() => handleNavClick('login')}>Login here</button>
+                      </div>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="container">
+                    <header className="header">
+                      <h1>My Profile</h1>
+                      <button className="btn-link" onClick={() => handleNavClick('dashboard')}>← Back to Dashboard</button>
+                    </header>
+
+                    <div className="form-container">
+                      <form className="form-group" onSubmit={handleUpdateProfile}>
+                        <h2>Update Your Profile</h2>
+
+                        <p><strong>Email:</strong> {applicant.email}</p>
+                        <p><strong>Name:</strong> {applicant.fullName}</p>
+
+                        <input
+                          type="tel"
+                          placeholder="Phone"
+                          value={profileForm.phone}
+                          onChange={(e) => setProfileForm(prev => ({ ...prev, phone: e.target.value }))}
+                        />
+
+                        <input
+                          type="text"
+                          placeholder="Location"
+                          value={profileForm.location}
+                          onChange={(e) => setProfileForm(prev => ({ ...prev, location: e.target.value }))}
+                        />
+
+                        <select
+                          value={profileForm.experienceLevel}
+                          onChange={(e) => setProfileForm(prev => ({ ...prev, experienceLevel: e.target.value }))}
+                        >
+                          <option value="entry">Entry Level</option>
+                          <option value="mid">Mid Level</option>
+                          <option value="senior">Senior</option>
+                          <option value="executive">Executive</option>
+                        </select>
+
+                        <textarea
+                          placeholder="Skills (comma-separated)"
+                          value={profileForm.skills}
+                          onChange={(e) => setProfileForm(prev => ({ ...prev, skills: e.target.value }))}
+                          rows="3"
+                        ></textarea>
+
+                        <button type="submit" className="btn-primary">Update Profile</button>
+
+                        {message && (
+                          <div className={`message ${success ? 'success' : 'error'}`}>
+                            {message}
+                          </div>
+                        )}
+                      </form>
+                    </div>
+                  </div>
+                );
+              }
+
+              return null;
+            }
+      const data = await apiRequest('/audit');
+      setAuditLogs(data);
+    } catch (error) {
+      setDashboardMessage(error.message);
+    }
+  }
+
+  if (!authenticated) {
+    return (
+      <div className="page">
+        <header className="hero hero-landing">
+          <div className="hero-strip" />
+          <div className="hero-copy">
+            <p className="eyebrow">Public Gateway</p>
+            <h1>CIVIRA</h1>
+            <p className="subtitle">Transparent Public Recruitment System</p>
+            <p className="tagline">Ending Favouritism. Empowering Merit. Protecting lives.</p>
+            <p className="intro">
+              Applicants can discover verified openings, submit applications directly, upload resumes for keyword parsing, and track progress using their candidate code.
+            </p>
+          </div>
+          <div className="metric-grid">
+            <div className="metric-card">
+              <span className="metric-value">{publicJobs.length}</span>
+              <span className="metric-label">Open roles</span>
+            </div>
+            <div className="metric-card">
+              <span className="metric-value">Parsed</span>
+              <span className="metric-label">Resume signals</span>
+            </div>
+            <div className="metric-card">
+              <span className="metric-value">Track</span>
+              <span className="metric-label">Application journey</span>
+            </div>
+          </div>
+        </header>
+
+        <div className="portal-grid">
+          <section className="card card-emphasis">
+            <div className="section-heading">
+              <div>
+                <p className="eyebrow">Applicant Side</p>
+                <h2>Browse current openings</h2>
+              </div>
+              <button type="button" className="secondary" onClick={loadPublicJobs}>Refresh Openings</button>
+            </div>
+
+            <div className="job-list">
+              {publicJobs.length ? (
+                publicJobs.map((job) => {
+                  const selected = String(applicationForm.jobId) === String(job.id);
+
+                  return (
+                    <article key={job.id} className={`job-card${selected ? ' selected' : ''}`}>
+                      <div className="job-meta-row">
+                        <span className="pill">{job.organization_name}</span>
+                        <span className="pill subtle">Job #{job.id}</span>
+                      </div>
+                      <h3>{job.title}</h3>
+                      <p className="job-description">{job.description || 'No description provided.'}</p>
+                      <p className="keyword-line">Criteria: {formatKeywords(job.criteria_keywords || [])}</p>
+                      <div className="job-footer">
+                        <span>Posted {formatDate(job.created_at)}</span>
+                        <button type="button" onClick={() => handleSelectJob(job.id)}>
+                          {selected ? 'Selected' : 'Apply Now'}
+                        </button>
+                      </div>
+                    </article>
+                  );
+                })
+              ) : (
+                <p className="empty-state">No open jobs are published yet.</p>
+              )}
+            </div>
+          </section>
+
+          <div className="side-stack">
+            <form className="card" onSubmit={handleApply}>
+              <div className="section-heading compact-heading">
+                <div>
+                  <p className="eyebrow">Apply</p>
+                  <h2>Submit application</h2>
+                </div>
+              </div>
+              <select
+                value={applicationForm.jobId}
+                onChange={(event) => setApplicationForm((prev) => ({ ...prev, jobId: event.target.value }))}
+              >
+                <option value="">Select job</option>
+                {publicJobs.map((job) => (
+                  <option key={job.id} value={job.id}>
+                    #{job.id} - {job.title}
+                  </option>
+                ))}
+              </select>
+              {selectedPublicJob && (
+                <p className="helper">
+                  Applying to {selectedPublicJob.title} at {selectedPublicJob.organization_name}
+                </p>
+              )}
+              <input
+                placeholder="Full name"
+                value={applicationForm.fullName}
+                onChange={(event) => setApplicationForm((prev) => ({ ...prev, fullName: event.target.value }))}
+              />
+              <input
+                placeholder="Email"
+                value={applicationForm.email}
+                onChange={(event) => setApplicationForm((prev) => ({ ...prev, email: event.target.value }))}
+              />
+              <input
+                placeholder="Qualification score (0-10)"
+                value={applicationForm.qualificationScore}
+                onChange={(event) => setApplicationForm((prev) => ({ ...prev, qualificationScore: event.target.value }))}
+              />
+              <input
+                placeholder="Years of experience"
+                value={applicationForm.experienceYears}
+                onChange={(event) => setApplicationForm((prev) => ({ ...prev, experienceYears: event.target.value }))}
+              />
+              <textarea
+                placeholder="Skills and keywords (comma separated)"
+                value={applicationForm.profileKeywords}
+                onChange={(event) => setApplicationForm((prev) => ({ ...prev, profileKeywords: event.target.value }))}
+              />
+              <label className="file-field">
+                <span>Resume upload</span>
+                <input
+                  type="file"
+                  accept=".pdf,.docx,.txt"
+                  onChange={(event) => setApplicationResume(event.target.files?.[0] || null)}
+                />
+              </label>
+              <p className="helper">Upload PDF, DOCX, or TXT. Parsed resume keywords are merged with your manual skills.</p>
+              <button type="submit">Submit Application</button>
+            </form>
+            {applicantMessage && <p className="message">{applicantMessage}</p>}
+            {applicationInsights && (
+              <section className="card">
+                <div className="section-heading compact-heading">
+                  <div>
+                    <p className="eyebrow">Application Receipt</p>
+                    <h2>Resume parsing result</h2>
+                  </div>
+                </div>
+                <p className="helper">Candidate code: {applicationInsights.candidateCode}</p>
+                <p className="helper">
+                  {applicationInsights.resumeProcessed ? 'Resume parsed successfully.' : 'No resume uploaded. Manual keywords were used.'}
+                </p>
+                <p className="keyword-line">
+                  Parsed profile keywords: {formatKeywords(applicationInsights.parsedProfileKeywords, 'No keywords detected from the submitted application.')}
+                </p>
+              </section>
+            )}
+
+            <form className="card" onSubmit={handleTrackApplication}>
+              <div className="section-heading compact-heading">
+                <div>
+                  <p className="eyebrow">Track</p>
+                  <h2>Check application status</h2>
+                </div>
+              </div>
+              <input
+                placeholder="Candidate code"
+                value={trackingForm.candidateCode}
+                onChange={(event) => setTrackingForm((prev) => ({ ...prev, candidateCode: event.target.value }))}
+              />
+              <input
+                placeholder="Application email"
+                value={trackingForm.email}
+                onChange={(event) => setTrackingForm((prev) => ({ ...prev, email: event.target.value }))}
+              />
+              <button type="submit">Track Application</button>
+            </form>
+            {trackingMessage && <p className="message">{trackingMessage}</p>}
+            {trackingResult && (
+              <section className="card tracking-card">
+                <div className="section-heading compact-heading">
+                  <div>
+                    <p className="eyebrow">Tracking Result</p>
+                    <h2>{trackingResult.statusLabel}</h2>
+                  </div>
+                  <span className="pill">{trackingResult.candidate.candidateCode}</span>
+                </div>
+                <p className="helper">{trackingResult.summary}</p>
+                <div className="tracking-meta">
+                  <p>{trackingResult.job.title}</p>
+                  <p>{trackingResult.job.organizationName}</p>
+                  <p>Applied {formatDate(trackingResult.candidate.submittedAt)}</p>
+                </div>
+                {trackingResult.ranking && (
+                  <p className="keyword-line">
+                    Shortlist rank: #{trackingResult.ranking.rankPosition} � Ranking score: {trackingResult.ranking.rankingScore.toFixed(2)}
+                  </p>
+                )}
+                {trackingResult.scoreSummary && (
+                  <p className="keyword-line">
+                    Panel total: {trackingResult.scoreSummary.totalScore.toFixed(2)} � Average: {trackingResult.scoreSummary.averageScore.toFixed(2)}
+                  </p>
+                )}
+                <div className="timeline">
+                  {trackingResult.timeline.map((item) => (
+                    <article key={item.key} className={`timeline-item${item.complete ? ' complete' : ''}${item.current ? ' current' : ''}`}>
+                      <div className="timeline-dot" />
+                      <div>
+                        <h3>{item.label}</h3>
+                        <p>{item.description}</p>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            <form className="card" onSubmit={handleLogin}>
+              <h2>Organization Login</h2>
+              <input
+                placeholder="Email"
+                value={loginForm.email}
+                onChange={(event) => setLoginForm((prev) => ({ ...prev, email: event.target.value }))}
+              />
+              <input
+                type="password"
+                placeholder="Password"
+                value={loginForm.password}
+                onChange={(event) => setLoginForm((prev) => ({ ...prev, password: event.target.value }))}
+              />
+              <button type="submit">Login</button>
+            </form>
+
+            <form className="card" onSubmit={handleRegisterOrganization}>
+              <h2>Create Organization</h2>
+              <input
+                placeholder="Organization name"
+                value={registerForm.organizationName}
+                onChange={(event) => setRegisterForm((prev) => ({ ...prev, organizationName: event.target.value }))}
+              />
+              <input
+                placeholder="Admin name"
+                value={registerForm.adminName}
+                onChange={(event) => setRegisterForm((prev) => ({ ...prev, adminName: event.target.value }))}
+              />
+              <input
+                placeholder="Admin email"
+                value={registerForm.adminEmail}
+                onChange={(event) => setRegisterForm((prev) => ({ ...prev, adminEmail: event.target.value }))}
+              />
+              <input
+                type="password"
+                placeholder="Admin password"
+                value={registerForm.adminPassword}
+                onChange={(event) => setRegisterForm((prev) => ({ ...prev, adminPassword: event.target.value }))}
+              />
+              <button type="submit">Register</button>
+            </form>
+            {authMessage && <p className="message">{authMessage}</p>}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="page">
+      <header className="hero compact">
+        <div className="hero-strip" />
+        <div>
+          <h1>CIVIRA</h1>
+          <p className="subtitle">{user.organizationName}</p>
+          <p className="meta">{user.role.toUpperCase()} � {user.userCode}</p>
+        </div>
+        <button className="secondary" onClick={logout}>Logout</button>
+      </header>
+
+      <div className="grid">
+        <form className="card" onSubmit={handleCreateJob}>
+          <h3>Open Job</h3>
+          <input placeholder="Job title" value={jobForm.title} onChange={(event) => setJobForm((prev) => ({ ...prev, title: event.target.value }))} />
+          <textarea placeholder="Description" value={jobForm.description} onChange={(event) => setJobForm((prev) => ({ ...prev, description: event.target.value }))} />
+          <input
+            placeholder="Criteria keywords (comma separated)"
+            value={jobForm.criteriaKeywords}
+            onChange={(event) => setJobForm((prev) => ({ ...prev, criteriaKeywords: event.target.value }))}
+          />
+          <button type="submit">Create Job</button>
+        </form>
+
+        {user.role === 'admin' && (
+          <form className="card" onSubmit={handleCreatePanelist}>
+            <h3>Add Panelist (max 5 users total)</h3>
+            <input placeholder="Full name" value={panelistForm.fullName} onChange={(event) => setPanelistForm((prev) => ({ ...prev, fullName: event.target.value }))} />
+            <input placeholder="Email" value={panelistForm.email} onChange={(event) => setPanelistForm((prev) => ({ ...prev, email: event.target.value }))} />
+            <input type="password" placeholder="Temporary password" value={panelistForm.password} onChange={(event) => setPanelistForm((prev) => ({ ...prev, password: event.target.value }))} />
+            <button type="submit">Create Panelist</button>
+          </form>
+        )}
+
+        <form className="card" onSubmit={handleAddCandidate}>
+          <h3>Add Candidate</h3>
+          <input placeholder="Job ID" value={candidateForm.jobId} onChange={(event) => setCandidateForm((prev) => ({ ...prev, jobId: event.target.value }))} />
+          <input placeholder="Full name" value={candidateForm.fullName} onChange={(event) => setCandidateForm((prev) => ({ ...prev, fullName: event.target.value }))} />
+          <input placeholder="Email" value={candidateForm.email} onChange={(event) => setCandidateForm((prev) => ({ ...prev, email: event.target.value }))} />
+          <input placeholder="Qualification score (0-10)" value={candidateForm.qualificationScore} onChange={(event) => setCandidateForm((prev) => ({ ...prev, qualificationScore: event.target.value }))} />
+          <input placeholder="Experience years" value={candidateForm.experienceYears} onChange={(event) => setCandidateForm((prev) => ({ ...prev, experienceYears: event.target.value }))} />
+          <input placeholder="Profile keywords" value={candidateForm.profileKeywords} onChange={(event) => setCandidateForm((prev) => ({ ...prev, profileKeywords: event.target.value }))} />
+          <button type="submit">Save Candidate</button>
+        </form>
+
+        <form className="card" onSubmit={handleSubmitScore}>
+          <h3>Panel Scoring</h3>
+          <input placeholder="Job ID" value={scoreForm.jobId} onChange={(event) => setScoreForm((prev) => ({ ...prev, jobId: event.target.value }))} />
+          <input placeholder="Candidate ID" value={scoreForm.candidateId} onChange={(event) => setScoreForm((prev) => ({ ...prev, candidateId: event.target.value }))} />
+          <input placeholder="Score" value={scoreForm.score} onChange={(event) => setScoreForm((prev) => ({ ...prev, score: event.target.value }))} />
+          <textarea placeholder="Notes" value={scoreForm.notes} onChange={(event) => setScoreForm((prev) => ({ ...prev, notes: event.target.value }))} />
+          <button type="submit">Submit Score</button>
+        </form>
+
+        <section className="card">
+          <h3>Shortlist & Selection</h3>
+          <input placeholder="Job ID" value={shortlistJobId} onChange={(event) => setShortlistJobId(event.target.value)} />
+          <div className="actions">
+            <button type="button" onClick={handleShortlist}>Generate Top 10</button>
+            <button type="button" onClick={handleFinalSelection}>Pick Highest Score</button>
+            <button type="button" className="secondary" onClick={loadJobs}>Refresh Jobs</button>
+            {user.role === 'admin' && <button type="button" className="secondary" onClick={handleLoadAudit}>Load Audit Logs</button>}
+          </div>
+          {finalSelection && (
+            <p className="highlight">
+              Selected: {finalSelection.full_name} ({finalSelection.candidate_code}) � Total Score: {Number(finalSelection.total_score).toFixed(2)}
+            </p>
+          )}
+        </section>
+      </div>
+
+      {dashboardMessage && <p className="message">{dashboardMessage}</p>}
+
+      <section className="card full">
+        <h3>Jobs</h3>
+        <ul>
+          {jobs.map((job) => (
+            <li key={job.id}>
+              #{job.id} � {job.title} � Keywords: {(job.criteria_keywords || []).join(', ')}
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="card full">
+        <h3>Top 10 Shortlist</h3>
+        <ul>
+          {shortlist.map((item) => (
+            <li key={item.candidate_id}>
+              Rank {item.rank_position}: {item.candidate_code} - {item.full_name} (Score: {Number(item.ranking_score).toFixed(2)})
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {user.role === 'admin' && (
+        <section className="card full">
+          <h3>Audit Activity</h3>
+          <ul>
+            {auditLogs.map((log) => (
+              <li key={log.id}>
+                {log.action} � {log.target_type} #{log.target_id} � {new Date(log.created_at).toLocaleString()}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
+  );
+}
+
+export default App;
+*/
+
+import { useEffect, useMemo, useState } from 'react';
+import { apiRequest } from './services/api';
+
+function toKeywords(value) {
+  return String(value || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function formatDate(value) {
+  if (!value) return '-';
+  return new Date(value).toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
+}
+
+function formatKeywords(value) {
+  if (Array.isArray(value)) return value.join(', ');
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.join(', ') : String(value || '');
+  } catch {
+    return String(value || '');
+  }
+}
+
+function App() {
+  const [currentPage, setCurrentPage] = useState('landing');
+  const [token, setToken] = useState(localStorage.getItem('civira_applicant_token') || '');
+  const [applicant, setApplicant] = useState(() => {
+    const stored = localStorage.getItem('civira_applicant');
+    return stored ? JSON.parse(stored) : null;
+  });
+  const [jobs, setJobs] = useState([]);
+  const [myApplications, setMyApplications] = useState([]);
+  const [trackingResult, setTrackingResult] = useState(null);
+  const [profileResume, setProfileResume] = useState(null);
+  const [message, setMessage] = useState('');
+  const [success, setSuccess] = useState(true);
+
+  const [registerForm, setRegisterForm] = useState({
+    fullName: '',
+    email: '',
+    password: '',
+    phone: '',
+    location: '',
+    experienceLevel: 'entry',
+    skills: ''
+  });
+  const [registerUserType, setRegisterUserType] = useState('applicant');
+  const [loginForm, setLoginForm] = useState({ email: '', password: '' });
+  const [loginUserType, setLoginUserType] = useState('applicant');
+  const [trackingForm, setTrackingForm] = useState({ candidateCode: '', email: '' });
+  const [applicationForm, setApplicationForm] = useState({
+    jobId: '',
+    qualificationScore: '',
+    experienceYears: '',
+    profileKeywords: ''
+  });
+  const [profileForm, setProfileForm] = useState({
+    phone: '',
+    location: '',
+    experienceLevel: 'entry',
+    skills: ''
+  });
+
+  const authenticated = Boolean(token && applicant);
+  const selectedJob = useMemo(
+    () => jobs.find((job) => String(job.id) === String(applicationForm.jobId)),
+    [jobs, applicationForm.jobId]
+  );
+
+  function setNotice(text, isSuccess = true) {
+    setMessage(text);
+    setSuccess(isSuccess);
+  }
+
+  function clearNotice() {
+    setMessage('');
+    setSuccess(true);
+  }
+
+  function persistSession(nextToken, nextApplicant) {
+    localStorage.setItem('civira_applicant_token', nextToken);
+    localStorage.setItem('civira_applicant', JSON.stringify(nextApplicant));
+    setToken(nextToken);
+    setApplicant(nextApplicant);
+  }
+
+  function clearSession() {
+    localStorage.removeItem('civira_applicant_token');
+    localStorage.removeItem('civira_applicant');
+    setToken('');
+    setApplicant(null);
+    setMyApplications([]);
+    setProfileResume(null);
+    setTrackingResult(null);
+  }
+
+  function goTo(page) {
+    clearNotice();
+    setCurrentPage(page);
+  }
+
+  async function loadPublicJobs() {
+    try {
+      const data = await apiRequest('/jobs/public');
+      setJobs(data);
+    } catch (error) {
+      setNotice(error.message, false);
+    }
+  }
+
+  async function loadMyApplications() {
+    if (!authenticated) {
+      setMyApplications([]);
+      return;
+    }
+    try {
+      const data = await apiRequest('/candidates/my-applications');
+      setMyApplications(data);
+    } catch (error) {
+      setNotice(error.message, false);
+    }
+  }
+
+  useEffect(() => {
+    loadPublicJobs();
+  }, []);
+
+  useEffect(() => {
+    loadMyApplications();
+  }, [token]);
+
+  useEffect(() => {
+    if (!applicant) return;
+    setProfileForm({
+      phone: applicant.phone || '',
+      location: applicant.location || '',
+      experienceLevel: applicant.experienceLevel || 'entry',
+      skills: Array.isArray(applicant.skills) ? applicant.skills.join(', ') : ''
+    });
+  }, [applicant]);
+
+  async function handleRegister(event) {
+    event.preventDefault();
+    
+    if (registerUserType === 'applicant') {
+      // Applicant registration
+      if (registerForm.password.length < 6) {
+        setNotice('Password must be at least 6 characters.', false);
+        return;
+      }
+      try {
+        const response = await apiRequest('/applicants/register', {
+          method: 'POST',
+          body: JSON.stringify({
+            fullName: registerForm.fullName,
+            email: registerForm.email,
+            password: registerForm.password,
+            phone: registerForm.phone || undefined,
+            location: registerForm.location || undefined,
+            experienceLevel: registerForm.experienceLevel,
+            skills: toKeywords(registerForm.skills)
+          })
+        });
+        persistSession(response.token, {
+          applicantId: response.applicantId,
+          fullName: registerForm.fullName,
+          email: response.email,
+          phone: registerForm.phone,
+          location: registerForm.location,
+          experienceLevel: registerForm.experienceLevel,
+          skills: toKeywords(registerForm.skills)
+        });
+        setNotice('Account created successfully.');
+        setRegisterForm({
+          fullName: '',
+          email: '',
+          password: '',
+          phone: '',
+          location: '',
+          experienceLevel: 'entry',
+          skills: ''
+        });
+        setCurrentPage('dashboard');
+      } catch (error) {
+        setNotice(error.message, false);
+      }
+    } else {
+      // Organization registration
+      if (registerForm.password.length < 6) {
+        setNotice('Password must be at least 6 characters.', false);
+        return;
+      }
+      try {
+        const response = await apiRequest('/auth/register-organization', {
+          method: 'POST',
+          body: JSON.stringify({
+            organizationName: registerForm.fullName,
+            adminName: registerForm.location,
+            adminEmail: registerForm.email,
+            adminPassword: registerForm.password
+          })
+        });
+        setNotice('Organization created successfully. Account Code: ' + response.accountCode, true);
+        setRegisterForm({
+          fullName: '',
+          email: '',
+          password: '',
+          phone: '',
+          location: '',
+          experienceLevel: 'entry',
+          skills: ''
+        });
+        setCurrentPage('login');
+      } catch (error) {
+        setNotice(error.message, false);
+      }
+    }
+  }
+
+  async function handleLogin(event) {
+    event.preventDefault();
+    try {
+      if (loginUserType === 'applicant') {
+        // Applicant login
+        const response = await apiRequest('/applicants/login', {
+          method: 'POST',
+          body: JSON.stringify(loginForm)
+        });
+        persistSession(response.token, {
+          applicantId: response.applicantId,
+          fullName: response.fullName,
+          email: response.email,
+          phone: response.phone,
+          location: response.location,
+          experienceLevel: response.experienceLevel,
+          skills: response.skills || [],
+          resumeFileName: response.resumeFileName || null
+        });
+        setNotice('Login successful.');
+        setLoginForm({ email: '', password: '' });
+        setCurrentPage('dashboard');
+      } else {
+        // Organization login
+        const response = await apiRequest('/auth/login', {
+          method: 'POST',
+          body: JSON.stringify(loginForm)
+        });
+        localStorage.setItem('civira_token', response.token);
+        localStorage.setItem('civira_user', JSON.stringify(response.user));
+        setNotice('Login successful.');
+        setLoginForm({ email: '', password: '' });
+        // Redirect to organization dashboard (would be a different view in full implementation)
+        // For now, just show success message
+      }
+    } catch (error) {
+      setNotice(error.message, false);
+    }
+  }
+
+  async function handleTrack(event) {
+    event.preventDefault();
+    try {
+      const result = await apiRequest('/candidates/track', {
+        method: 'POST',
+        body: JSON.stringify(trackingForm)
+      });
+      setTrackingResult(result);
+      setNotice('Tracking details loaded.');
+    } catch (error) {
+      setTrackingResult(null);
+      setNotice(error.message, false);
+    }
+  }
+
+  async function handleApply(event) {
+    event.preventDefault();
+    if (!applicationForm.jobId) {
+      setNotice('Please select a job.', false);
+      return;
+    }
+    try {
+      const formData = new FormData();
+      formData.append('jobId', applicationForm.jobId);
+      formData.append('qualificationScore', applicationForm.qualificationScore || '0');
+      formData.append('experienceYears', applicationForm.experienceYears || '0');
+      formData.append('profileKeywords', applicationForm.profileKeywords || '');
+
+      const response = await apiRequest('/candidates/apply', { method: 'POST', body: formData });
+      setNotice(
+        response.usedSavedResume
+          ? `Application submitted. Candidate code: ${response.candidateCode}. Your saved resume was used automatically.`
+          : `Application submitted. Candidate code: ${response.candidateCode}`
+      );
+      setApplicationForm({ jobId: '', qualificationScore: '', experienceYears: '', profileKeywords: '' });
+      loadMyApplications();
+    } catch (error) {
+      setNotice(error.message, false);
+    }
+  }
+
+  async function handleUpdateProfile(event) {
+    event.preventDefault();
+    try {
+      const formData = new FormData();
+      formData.append('phone', profileForm.phone || '');
+      formData.append('location', profileForm.location || '');
+      formData.append('experienceLevel', profileForm.experienceLevel || 'entry');
+      formData.append('skills', JSON.stringify(toKeywords(profileForm.skills)));
+      if (profileResume) {
+        formData.append('resume', profileResume);
+      }
+
+      const response = await apiRequest('/applicants/profile', {
+        method: 'PUT',
+        body: formData
+      });
+      const nextApplicant = response.applicant || {
+        ...applicant,
+        phone: profileForm.phone,
+        location: profileForm.location,
+        experienceLevel: profileForm.experienceLevel,
+        skills: toKeywords(profileForm.skills),
+        resumeFileName: applicant?.resumeFileName || null
+      };
+
+      localStorage.setItem('civira_applicant', JSON.stringify(nextApplicant));
+      setApplicant(nextApplicant);
+      setProfileResume(null);
+      setNotice(
+        nextApplicant.resumeFileName
+          ? 'Profile updated successfully. Your saved resume will be used automatically when you apply.'
+          : 'Profile updated successfully.'
+      );
+    } catch (error) {
+      setNotice(error.message, false);
+    }
+  }
+
+  return (
+    <div className="container">
+      <header className="header header-main">
+        <div>
+          <h1>Civira Recruitment Platform</h1>
+          <p className="muted header-copy">Applicant workspace for profile setup, resume storage, and job applications.</p>
+        </div>
+        {authenticated && <span className="user-chip">{applicant.fullName}</span>}
+      </header>
+
+      <div className="nav-tabs nav-tabs-top">
+        <button className={`nav-btn ${currentPage === 'landing' ? 'active' : ''}`} onClick={() => goTo('landing')}>Home</button>
+        <button className={`nav-btn ${currentPage === 'browse' ? 'active' : ''}`} onClick={() => goTo('browse')}>Browse</button>
+        {!authenticated && <button className={`nav-btn ${currentPage === 'register' ? 'active' : ''}`} onClick={() => goTo('register')}>Register</button>}
+        {!authenticated && <button className={`nav-btn ${currentPage === 'login' ? 'active' : ''}`} onClick={() => goTo('login')}>Login</button>}
+        {authenticated && <button className={`nav-btn ${currentPage === 'apply' ? 'active' : ''}`} onClick={() => goTo('apply')}>Apply</button>}
+        {authenticated && <button className={`nav-btn ${currentPage === 'dashboard' ? 'active' : ''}`} onClick={() => goTo('dashboard')}>Dashboard</button>}
+        {authenticated && <button className={`nav-btn ${currentPage === 'profile' ? 'active' : ''}`} onClick={() => goTo('profile')}>Profile</button>}
+        {authenticated && <button className="nav-btn logout" onClick={() => { clearSession(); goTo('landing'); }}>Logout</button>}
+      </div>
+
+      {message && <div className={`message ${success ? 'success' : 'error'}`}>{message}</div>}
+
+      {currentPage === 'landing' && (
+        <section className="split-grid">
+          <div className="card">
+            <h2>Open Jobs</h2>
+            <p className="muted">Browse available roles and apply after login.</p>
+            <div className="jobs-grid">
+              {jobs.map((job) => (
+                <article key={job.id} className="job-card">
+                  <h3>{job.title}</h3>
+                  <p className="job-description">{job.description || 'No description'}</p>
+                  <p><strong>Keywords:</strong> {formatKeywords(job.criteria_keywords)}</p>
+                  <p><strong>Status:</strong> {job.status}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+
+          <div className="card">
+            <h2>Track Application</h2>
+            <form className="form-group" onSubmit={handleTrack}>
+              <input type="text" placeholder="Candidate code" value={trackingForm.candidateCode} onChange={(event) => setTrackingForm((prev) => ({ ...prev, candidateCode: event.target.value }))} required />
+              <input type="email" placeholder="Email" value={trackingForm.email} onChange={(event) => setTrackingForm((prev) => ({ ...prev, email: event.target.value }))} required />
+              <button type="submit" className="btn-primary">Track</button>
+            </form>
+            {trackingResult && (
+              <div className="tracking-result">
+                <p><strong>Candidate:</strong> {trackingResult.candidate?.fullName}</p>
+                <p><strong>Job:</strong> {trackingResult.job?.title}</p>
+                <p><strong>Status:</strong> {trackingResult.statusLabel}</p>
+                <p>{trackingResult.summary}</p>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      {currentPage === 'browse' && (
+        <section className="card">
+          <h2>Browse Jobs</h2>
+          <div className="jobs-grid">
+            {jobs.map((job) => (
+              <article key={job.id} className="job-card">
+                <h3>{job.title}</h3>
+                <p className="job-description">{job.description || 'No description'}</p>
+                <p><strong>Keywords:</strong> {formatKeywords(job.criteria_keywords)}</p>
+                <p><strong>Posted:</strong> {formatDate(job.created_at)}</p>
+                {authenticated ? (
+                  <button className="btn-primary" onClick={() => { setApplicationForm((prev) => ({ ...prev, jobId: String(job.id) })); setCurrentPage('apply'); }}>
+                    Apply now
+                  </button>
+                ) : (
+                  <button className="btn-secondary" onClick={() => setCurrentPage('login')}>Login to apply</button>
+                )}
+              </article>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {currentPage === 'register' && (
+        <section className="form-container">
+          <form className="form-group" onSubmit={handleRegister}>
+            <h2>Create Account</h2>
+            <div className="login-type-selector">
+              <label className="radio-label">
+                <input
+                  type="radio"
+                  name="registerType"
+                  value="applicant"
+                  checked={registerUserType === 'applicant'}
+                  onChange={(event) => setRegisterUserType(event.target.value)}
+                />
+                <span>Applicant</span>
+              </label>
+              <label className="radio-label">
+                <input
+                  type="radio"
+                  name="registerType"
+                  value="organization"
+                  checked={registerUserType === 'organization'}
+                  onChange={(event) => setRegisterUserType(event.target.value)}
+                />
+                <span>Organization</span>
+              </label>
+            </div>
+
+            {registerUserType === 'applicant' ? (
+              <>
+                <input type="text" placeholder="Full name" value={registerForm.fullName} onChange={(event) => setRegisterForm((prev) => ({ ...prev, fullName: event.target.value }))} required />
+                <input type="email" placeholder="Email" value={registerForm.email} onChange={(event) => setRegisterForm((prev) => ({ ...prev, email: event.target.value }))} required />
+                <input type="password" placeholder="Password (min 6 chars)" value={registerForm.password} onChange={(event) => setRegisterForm((prev) => ({ ...prev, password: event.target.value }))} required minLength={6} />
+                <input type="tel" placeholder="Phone (optional)" value={registerForm.phone} onChange={(event) => setRegisterForm((prev) => ({ ...prev, phone: event.target.value }))} />
+                <input type="text" placeholder="Location (optional)" value={registerForm.location} onChange={(event) => setRegisterForm((prev) => ({ ...prev, location: event.target.value }))} />
+                <select value={registerForm.experienceLevel} onChange={(event) => setRegisterForm((prev) => ({ ...prev, experienceLevel: event.target.value }))}>
+                  <option value="entry">Entry</option>
+                  <option value="mid">Mid</option>
+                  <option value="senior">Senior</option>
+                  <option value="executive">Executive</option>
+                </select>
+                <textarea placeholder="Skills (comma-separated, optional)" value={registerForm.skills} onChange={(event) => setRegisterForm((prev) => ({ ...prev, skills: event.target.value }))} rows={3} />
+              </>
+            ) : (
+              <>
+                <input type="text" placeholder="Organization name" value={registerForm.fullName} onChange={(event) => setRegisterForm((prev) => ({ ...prev, fullName: event.target.value }))} required />
+                <input type="text" placeholder="Admin name" value={registerForm.location} onChange={(event) => setRegisterForm((prev) => ({ ...prev, location: event.target.value }))} required />
+                <input type="email" placeholder="Admin email" value={registerForm.email} onChange={(event) => setRegisterForm((prev) => ({ ...prev, email: event.target.value }))} required />
+                <input type="password" placeholder="Admin password (min 6 chars)" value={registerForm.password} onChange={(event) => setRegisterForm((prev) => ({ ...prev, password: event.target.value }))} required minLength={6} />
+              </>
+            )}
+
+            <button type="submit" className="btn-primary">
+              {registerUserType === 'applicant' ? 'Create Applicant Account' : 'Create Organization'}
+            </button>
+
+            <p className="form-link">
+              Already have an account? <button type="button" className="btn-link" onClick={() => goTo('login')}>Login</button>
+            </p>
+          </form>
+        </section>
+      )}
+
+      {currentPage === 'login' && (
+        <section className="form-container">
+          <form className="form-group" onSubmit={handleLogin}>
+            <h2>Login</h2>
+            <div className="login-type-selector">
+              <label className="radio-label">
+                <input
+                  type="radio"
+                  name="userType"
+                  value="applicant"
+                  checked={loginUserType === 'applicant'}
+                  onChange={(event) => setLoginUserType(event.target.value)}
+                />
+                <span>Applicant</span>
+              </label>
+              <label className="radio-label">
+                <input
+                  type="radio"
+                  name="userType"
+                  value="organization"
+                  checked={loginUserType === 'organization'}
+                  onChange={(event) => setLoginUserType(event.target.value)}
+                />
+                <span>Organization</span>
+              </label>
+            </div>
+            <input type="email" placeholder="Email" value={loginForm.email} onChange={(event) => setLoginForm((prev) => ({ ...prev, email: event.target.value }))} required />
+            <input type="password" placeholder="Password" value={loginForm.password} onChange={(event) => setLoginForm((prev) => ({ ...prev, password: event.target.value }))} required />
+            <button type="submit" className="btn-primary">Login</button>
+            {loginUserType === 'applicant' && (
+              <p className="form-link">
+                Don't have an account? <button type="button" className="btn-link" onClick={() => goTo('register')}>Register</button>
+              </p>
+            )}
+          </form>
+        </section>
+      )}
+
+      {currentPage === 'apply' && (
+        <section className="form-container">
+          {!authenticated ? (
+            <div className="message error">Login first to apply for jobs.</div>
+          ) : (
+            <form className="form-group" onSubmit={handleApply}>
+              <h2>Submit Application</h2>
+              <p className="helper">
+                Your saved resume from the profile page will be attached automatically when available.
+              </p>
+              {!applicant?.resumeFileName && (
+                <p className="message error">Upload your CV or resume in Profile before applying if you want automatic resume parsing.</p>
+              )}
+              <select value={applicationForm.jobId} onChange={(event) => setApplicationForm((prev) => ({ ...prev, jobId: event.target.value }))} required>
+                <option value="">Select job</option>
+                {jobs.map((job) => (
+                  <option key={job.id} value={job.id}>{job.title}</option>
+                ))}
+              </select>
+              {selectedJob && (
+                <div className="job-preview">
+                  <h3>{selectedJob.title}</h3>
+                  <p>{selectedJob.description}</p>
+                </div>
+              )}
+              <input type="number" placeholder="Qualification Score" value={applicationForm.qualificationScore} onChange={(event) => setApplicationForm((prev) => ({ ...prev, qualificationScore: event.target.value }))} min={0} max={100} step="0.01" />
+              <input type="number" placeholder="Experience Years" value={applicationForm.experienceYears} onChange={(event) => setApplicationForm((prev) => ({ ...prev, experienceYears: event.target.value }))} min={0} step="0.5" />
+              <textarea placeholder="Profile Keywords (comma-separated)" value={applicationForm.profileKeywords} onChange={(event) => setApplicationForm((prev) => ({ ...prev, profileKeywords: event.target.value }))} rows={3} />
+              <button type="submit" className="btn-primary">Submit Application</button>
+            </form>
+          )}
+        </section>
+      )}
+
+      {currentPage === 'dashboard' && (
+        <section className="card">
+          {!authenticated ? (
+            <div className="message error">Login first to access your dashboard.</div>
+          ) : (
+            <>
+              <h2>My Applications</h2>
+              {myApplications.length === 0 ? (
+                <p className="muted">No applications yet.</p>
+              ) : (
+                <div className="applications-list">
+                  {myApplications.map((item) => (
+                    <article key={item.id} className="application-card">
+                      <h3>{item.job_title}</h3>
+                      <p><strong>Candidate Code:</strong> {item.candidate_code}</p>
+                      <p><strong>Applied:</strong> {formatDate(item.created_at)}</p>
+                      <p><strong>Status:</strong> {item.rank_position ? `Shortlisted (#${item.rank_position})` : 'Under review'}</p>
+                      {item.ranking_score && <p><strong>Ranking Score:</strong> {Number(item.ranking_score).toFixed(2)}</p>}
+                      {item.score_count > 0 && <p><strong>Panel Reviews:</strong> {item.score_count}</p>}
+                    </article>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </section>
+      )}
+
+      {currentPage === 'profile' && (
+        <section className="form-container">
+          {!authenticated ? (
+            <div className="message error">Login first to edit your profile.</div>
+          ) : (
+            <form className="form-group" onSubmit={handleUpdateProfile}>
+              <h2>Update Profile</h2>
+              <p><strong>Name:</strong> {applicant.fullName}</p>
+              <p><strong>Email:</strong> {applicant.email}</p>
+              <p><strong>Saved Resume:</strong> {applicant.resumeFileName || 'No resume uploaded yet'}</p>
+              <input type="tel" placeholder="Phone" value={profileForm.phone} onChange={(event) => setProfileForm((prev) => ({ ...prev, phone: event.target.value }))} />
+              <input type="text" placeholder="Location" value={profileForm.location} onChange={(event) => setProfileForm((prev) => ({ ...prev, location: event.target.value }))} />
+              <select value={profileForm.experienceLevel} onChange={(event) => setProfileForm((prev) => ({ ...prev, experienceLevel: event.target.value }))}>
+                <option value="entry">Entry</option>
+                <option value="mid">Mid</option>
+                <option value="senior">Senior</option>
+                <option value="executive">Executive</option>
+              </select>
+              <textarea placeholder="Skills (comma-separated)" value={profileForm.skills} onChange={(event) => setProfileForm((prev) => ({ ...prev, skills: event.target.value }))} rows={3} />
+              <label className="file-field">
+                <span>Upload CV / Resume</span>
+                <input type="file" accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain" onChange={(event) => setProfileResume(event.target.files?.[0] || null)} />
+              </label>
+              {profileResume && <p className="helper">Selected file: {profileResume.name}</p>}
+              <p className="helper">Once saved here, this resume is reused automatically for future applications.</p>
+              <button type="submit" className="btn-primary">Save Profile</button>
+            </form>
+          )}
+        </section>
+      )}
+
+    </div>
+  );
+}
+
+export default App;
