@@ -65,7 +65,7 @@ export default function App() {
   // ===== EFFECTS =====
   useEffect(() => {
     fetchJobs();
-  }, []);
+  }, [applicantToken, orgToken]);
 
   useEffect(() => {
     if (isApplicant) {
@@ -73,10 +73,21 @@ export default function App() {
     }
   }, [applicantToken]);
 
+  useEffect(() => {
+    if (isApplicant && applicant) {
+      setProfileForm({
+        phone: applicant.phone || '',
+        location: applicant.location || '',
+        experienceLevel: applicant.experienceLevel || 'entry',
+        skills: Array.isArray(applicant.skills) ? applicant.skills.join(', ') : ''
+      });
+    }
+  }, [applicantToken, applicant]);
+
   // ===== API CALLS =====
   async function fetchJobs() {
     try {
-      const data = await apiRequest('/jobs');
+      const data = await apiRequest(isOrgUser ? '/jobs' : '/jobs/public');
       setJobs(data || []);
     } catch (error) {
       console.error('Failed to fetch jobs');
@@ -86,7 +97,7 @@ export default function App() {
   async function fetchApplications() {
     if (!applicantToken) return;
     try {
-      const data = await apiRequest('/candidates/applications');
+      const data = await apiRequest('/candidates/my-applications');
       setMyApplications(data || []);
     } catch (error) {
       console.error('Failed to fetch applications');
@@ -154,9 +165,9 @@ export default function App() {
         email: result.email,
         phone: result.phone || '',
         location: result.location || '',
-        experienceLevel: result.experience_level || 'entry',
+        experienceLevel: result.experienceLevel || 'entry',
         skills: Array.isArray(result.skills) ? result.skills : (result.skills ? JSON.parse(result.skills) : []),
-        resumeFileName: result.resume_file_name || null
+        resumeFileName: result.resumeFileName || null
       };
       localStorage.setItem('applicant_token', result.token);
       localStorage.setItem('applicant_data', JSON.stringify(applicantData));
@@ -284,7 +295,7 @@ export default function App() {
         location: profileForm.location,
         experienceLevel: profileForm.experienceLevel,
         skills: toKeywords(profileForm.skills),
-        resumeFileName: result.resume_file_name || applicant.resumeFileName
+        resumeFileName: result.applicant?.resumeFileName || applicant.resumeFileName
       };
       setApplicant(updatedApplicant);
       localStorage.setItem('applicant_data', JSON.stringify(updatedApplicant));
@@ -321,8 +332,8 @@ export default function App() {
       const result = await response.json();
       
       const msg = result.usedSavedResume 
-        ? `Application submitted! Code: ${result.candidate_code}. Your saved resume was used.`
-        : `Application submitted! Code: ${result.candidate_code}`;
+        ? `Application submitted! Code: ${result.candidateCode}. Your saved resume was used.`
+        : `Application submitted! Code: ${result.candidateCode}`;
       setMessage(msg);
       setSuccess(true);
       setApplicationForm({ jobId: '', qualificationScore: '', experienceYears: '', profileKeywords: '' });
@@ -345,7 +356,7 @@ export default function App() {
       await apiRequest('/jobs', 'POST', {
         title: jobForm.title,
         description: jobForm.description,
-        criteria_keywords: toKeywords(jobForm.criteria_keywords)
+        criteriaKeywords: toKeywords(jobForm.criteria_keywords)
       });
       setMessage('Job created successfully!');
       setSuccess(true);
