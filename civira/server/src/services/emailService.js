@@ -1,4 +1,5 @@
 // Uses Resend free email API (free tier available) to send transactional emails.
+// Exported to: shared email helper used by functions in this file and imported by other service wrappers.
 export async function sendEmail({ to, subject, html }) {
   if (!process.env.RESEND_API_KEY) {
     return { skipped: true, message: 'RESEND_API_KEY not set. Email skipped.' };
@@ -26,10 +27,29 @@ export async function sendEmail({ to, subject, html }) {
   return response.json();
 }
 
+// Exported to: server/src/controllers/authController.js and applicantAuthController.js
 export async function sendCredentialsEmail({ to, subject, html }) {
   return sendEmail({ to, subject, html });
 }
 
+// Exported to: registration flows for applicant, organization admin, and panelist signup.
+export async function sendVerificationCodeEmail({ to, fullName, code, audience = 'user' }) {
+  const greetingName = fullName ? ` ${fullName}` : '';
+  return sendEmail({
+    to,
+    subject: 'Your Civira verification code',
+    html: `
+      <h2>Civira verification</h2>
+      <p>Hello${greetingName},</p>
+      <p>Use this one-time code to finish your ${audience} registration:</p>
+      <p style="font-size:28px;letter-spacing:4px;"><strong>${code}</strong></p>
+      <p>This code expires in 10 minutes.</p>
+      <p>If you did not request this, you can ignore this email.</p>
+    `
+  });
+}
+
+// Exported to: server/src/controllers/candidateController.js
 export async function sendShortlistEmailToAdmin({ to, jobTitle, shortlisted }) {
   const rows = shortlisted
     .map(
@@ -65,6 +85,7 @@ export async function sendShortlistEmailToAdmin({ to, jobTitle, shortlisted }) {
   });
 }
 
+// Exported to: server/src/controllers/scoreController.js
 export async function sendSelectionEmailToCandidate({ to, candidateName, jobTitle, organizationName, totalScore, candidateCode }) {
   return sendEmail({
     to,
@@ -75,6 +96,23 @@ export async function sendSelectionEmailToCandidate({ to, candidateName, jobTitl
       <p>Candidate code: <strong>${candidateCode}</strong></p>
       <p>Total panel score: <strong>${Number(totalScore).toFixed(2)}</strong></p>
       <p>Please watch your email for the next steps from the recruiting organization.</p>
+    `
+  });
+}
+
+// Exported to: server/src/controllers/interviewController.js
+export async function sendInterviewInviteEmailToCandidate({ to, candidateName, jobTitle, interviewDate, candidateCode }) {
+  return sendEmail({
+    to,
+    subject: `Civira interview invitation: ${jobTitle}`,
+    html: `
+      <h2>Interview invitation</h2>
+      <p>Hello ${candidateName},</p>
+      <p>You have been shortlisted for <strong>${jobTitle}</strong>.</p>
+      <p>Your interview day is <strong>${interviewDate}</strong>.</p>
+      <p>Candidate code: <strong>${candidateCode}</strong></p>
+      <p>On interview day, candidates are called in random order by the panel.</p>
+      <p>Please keep this code ready when contacted.</p>
     `
   });
 }

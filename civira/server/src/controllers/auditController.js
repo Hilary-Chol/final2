@@ -1,5 +1,6 @@
 import pool from '../config/db.js';
 
+// Exported to: server/src/routes/auditRoutes.js -> router.get('/', requireAuth, requireRole('admin'), getAuditLogs)
 export async function getAuditLogs(req, res) {
   try {
     const { organizationId } = req.user;

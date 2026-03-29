@@ -1,0 +1,28 @@
+/* Panelist Component Styles */
+.panelist-scoring-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  box-shadow: var(--shadow);
+}
+
+.panelist-scoring-card h3 {
+  margin: 0 0 1rem 0;
+  color: var(--text);
+}
+
+.panelist-scoring-card p {
+  margin: 0.5rem 0;
+  color: var(--text-secondary);
+}
+
+.panelist-scoring-card input,
+.panelist-scoring-card textarea {
+  margin: 0.5rem 0;
+}
+
+.panelist-scoring-card .btn-primary {
+  margin-top: 0.5rem;
+}

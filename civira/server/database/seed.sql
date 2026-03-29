@@ -25,7 +25,7 @@ INSERT INTO users (id, organization_id, user_code, full_name, email, password_ha
 (5, 1, 'PNL-DEMO04', 'Panelist Four', 'panel4@civira.demo', '$2a$10$g9ChaX70QtttALTOjlGtYuUsPvpRFGghO69NtCXAbMNSu6JBVQa96', 'panelist', NOW());
 
 -- Demo job with criteria keywords
-INSERT INTO jobs (id, organization_id, title, description, criteria_keywords, status, created_by, created_at)
+INSERT INTO jobs (id, organization_id, title, description, criteria_keywords, application_deadline, status, created_by, created_at)
 VALUES
 (
   1,
@@ -33,6 +33,7 @@ VALUES
   'Public Health Data Officer',
   'Coordinate health service datasets, reporting, and compliance analytics.',
   JSON_ARRAY('data analysis', 'public health', 'reporting', 'compliance', 'sql', 'excel'),
+  DATE_ADD(CURDATE(), INTERVAL 21 DAY),
   'open',
   1,
   NOW()

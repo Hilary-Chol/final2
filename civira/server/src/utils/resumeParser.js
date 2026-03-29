@@ -47,6 +47,7 @@ function uniqueKeywords(items) {
   return Array.from(seen.values());
 }
 
+// Exported to: utility helper consumed by parseResumeFile() in this module.
 export function extractKeywordsFromText(text, criteriaKeywords = []) {
   const normalizedText = String(text || '').toLowerCase();
 
@@ -60,6 +61,7 @@ export function extractKeywordsFromText(text, criteriaKeywords = []) {
   return uniqueKeywords([...directMatches, ...vocabularyMatches]).slice(0, 15);
 }
 
+// Exported to: server/src/controllers/applicantAuthController.js and candidateController.js
 export async function parseResumeFile(file, criteriaKeywords = []) {
   if (!file) {
     return {
@@ -90,6 +92,7 @@ export async function parseResumeFile(file, criteriaKeywords = []) {
 
   return {
     extractedKeywords: extractKeywordsFromText(resumeText, criteriaKeywords),
-    resumeFileName: file.originalname
+    resumeFileName: file.originalname,
+    resumeText
   };
 }

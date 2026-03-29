@@ -1,19 +1,37 @@
-import { useState, useEffect } from 'react';
-import { apiRequest } from './services/api';
+import { useState, useEffect, useRef } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { apiRequest, API_BASE_URL } from './services/api';
+import {
+  toKeywords,
+  hasDeadlinePassed,
+  parseSkillList,
+  profileImageFromName,
+  profileBio,
+  pageToPath,
+  pathToPage
+} from './utils/helpers';
+import GuestRoutes from './components/guest/GuestRoutes';
+import ApplicantApp from './components/applicant/ApplicantApp';
+import AdminApp from './components/admin/AdminApp';
+import PanelistApp from './components/panelist/PanelistApp';
+import { applicantPages, managerPages, memberPages, guestPages } from './constants/pageGroups';
 
 // Professional role-based recruitment application
-// Supports: Applicants (job seekers), Admins (organization), Panelists (interviewers)
+// Supports: Applicants (job seekers), managers (organization), team members (interviewers)
 
-function toKeywords(value) {
-  return value.split(',').map(item => item.trim()).filter(Boolean);
-}
-
-function formatDate(value) {
-  if (!value) return '-';
-  return new Date(value).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+function AccountIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 12C14.7614 12 17 9.76142 17 7C17 4.23858 14.7614 2 12 2C9.23858 2 7 4.23858 7 7C7 9.76142 9.23858 12 12 12Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M20 22C20 18.6863 16.4183 16 12 16C7.58172 16 4 18.6863 4 22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
 }
 
 export default function App() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
   // ===== AUTHENTICATION STATE =====
   const [applicantToken, setApplicantToken] = useState(localStorage.getItem('applicant_token') || '');
   const [orgToken, setOrgToken] = useState(localStorage.getItem('auth_token') || '');
@@ -35,37 +53,95 @@ export default function App() {
   const isPanelist = orgUser?.role === 'panelist';
 
   // ===== PAGE & UI STATE =====
-  const [currentPage, setCurrentPage] = useState('landing');
+  const [currentPage, setCurrentPageState] = useState(() => pathToPage(location.pathname));
+  const hasEnforcedGuestLanding = useRef(false);
   const [message, setMessage] = useState('');
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [ratingLoading, setRatingLoading] = useState(false);
+  const [cvRating, setCvRating] = useState(null);
 
   // ===== DATA STATE =====
   const [jobs, setJobs] = useState([]);
   const [myApplications, setMyApplications] = useState([]);
   const [shortlistedCandidates, setShortlistedCandidates] = useState([]);
   const [selectedJob, setSelectedJob] = useState(null);
+  const [jobRankingList, setJobRankingList] = useState([]);
+  const [rankingExpanded, setRankingExpanded] = useState(null);
 
   // ===== APPLICANT FORMS =====
   const [applicantRegisterForm, setApplicantRegisterForm] = useState({
-    fullName: '', email: '', password: '', phone: '', location: '', experienceLevel: 'entry', skills: ''
+    fullName: '', email: '', phone: '', location: ''
   });
   const [applicantLoginForm, setApplicantLoginForm] = useState({ email: '', password: '' });
-  const [applicationForm, setApplicationForm] = useState({ jobId: '', qualificationScore: '', experienceYears: '', profileKeywords: '' });
+  const [applicationForm, setApplicationForm] = useState({ jobId: '' });
   const [profileForm, setProfileForm] = useState({ phone: '', location: '', experienceLevel: 'entry', skills: '' });
   const [profileResume, setProfileResume] = useState(null);
 
   // ===== ORG FORMS =====
   const [orgRegisterForm, setOrgRegisterForm] = useState({
-    organizationName: '', adminName: '', adminEmail: '', adminPassword: ''
+    organizationName: '', managerName: '', managerEmail: '', managerPassword: ''
   });
   const [orgLoginForm, setOrgLoginForm] = useState({ email: '', password: '' });
-  const [jobForm, setJobForm] = useState({ title: '', description: '', criteria_keywords: '' });
+  const [jobForm, setJobForm] = useState({ title: '', description: '', criteria_keywords: '', applicationDeadline: '' });
+  const [teamMembers, setTeamMembers] = useState([]);
+  const [memberSearchQuery, setMemberSearchQuery] = useState('');
+  const [memberCandidates, setMemberCandidates] = useState([]);
+  const [searchingCandidates, setSearchingCandidates] = useState(false);
+  const [topCandidates, setTopCandidates] = useState([]);
+  const [panelJobId, setPanelJobId] = useState('');
+  const [scoreDrafts, setScoreDrafts] = useState({});
+  const [orgProfileForm, setOrgProfileForm] = useState({ fullName: '', bio: '', experience: '', skills: '' });
+  const [orgProfileCv, setOrgProfileCv] = useState(null);
+  const [orgProfileMeta, setOrgProfileMeta] = useState({ cvFileName: null, userCode: '' });
+  const [interviewSession, setInterviewSession] = useState(null);
+  const [drawnCandidate, setDrawnCandidate] = useState(null);
 
   // ===== EFFECTS =====
   useEffect(() => {
     fetchJobs();
   }, [applicantToken, orgToken]);
+
+  useEffect(() => {
+    const nextPage = pathToPage(location.pathname);
+    setCurrentPageState(nextPage);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    setMessage('');
+    setSuccess(false);
+  }, [currentPage]);
+
+  useEffect(() => {
+    if (hasEnforcedGuestLanding.current) return;
+    hasEnforcedGuestLanding.current = true;
+
+    if (!isApplicant && !isOrgUser && location.pathname !== pageToPath.landing) {
+      setCurrentPageState('landing');
+      navigate(pageToPath.landing, { replace: true });
+    }
+  }, [isApplicant, isOrgUser, location.pathname, navigate]);
+
+  useEffect(() => {
+    if (isApplicant && !applicantPages.includes(currentPage)) {
+      setCurrentPage('applicant-dashboard');
+      return;
+    }
+
+    if (isAdmin && !managerPages.includes(currentPage)) {
+      setCurrentPage('admin-dashboard');
+      return;
+    }
+
+    if (isPanelist && !memberPages.includes(currentPage)) {
+      setCurrentPage('panelist-dashboard');
+      return;
+    }
+
+    if (!isApplicant && !isOrgUser && !guestPages.includes(currentPage)) {
+      setCurrentPage('landing');
+    }
+  }, [currentPage, isApplicant, isAdmin, isOrgUser, isPanelist]);
 
   useEffect(() => {
     if (isApplicant) {
@@ -83,6 +159,27 @@ export default function App() {
       });
     }
   }, [applicantToken, applicant]);
+
+  useEffect(() => {
+    if (isAdmin && currentPage === 'admin-team') {
+      fetchTeamMembers();
+      handleSearchMemberProfiles();
+    }
+  }, [isAdmin, currentPage]);
+
+  useEffect(() => {
+    if ((isAdmin && currentPage === 'admin-profile') || (isPanelist && currentPage === 'panelist-profile')) {
+      fetchMyOrgProfile();
+    }
+  }, [isAdmin, isPanelist, currentPage]);
+
+  useEffect(() => {
+    if (!isAdmin || currentPage !== 'admin-team') return;
+    const timer = setTimeout(() => {
+      handleSearchMemberProfiles();
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [memberSearchQuery]);
 
   // ===== API CALLS =====
   async function fetchJobs() {
@@ -107,9 +204,191 @@ export default function App() {
   async function fetchShortlist(jobId) {
     try {
       const data = await apiRequest(`/candidates/shortlist/${jobId}`);
-      setShortlistedCandidates(data.shortlisted || []);
+      setShortlistedCandidates(Array.isArray(data) ? data : (data.shortlisted || []));
     } catch (error) {
       console.error('Failed to fetch shortlist');
+    }
+  }
+
+  async function fetchTeamMembers() {
+    try {
+      const data = await apiRequest('/auth/team-members');
+      setTeamMembers(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Failed to fetch team members');
+    }
+  }
+
+  async function fetchTopCandidates(jobId) {
+    if (!jobId) {
+      setTopCandidates([]);
+      return;
+    }
+
+    try {
+      const data = await apiRequest(`/scores/top-candidates/${jobId}`);
+      setTopCandidates(Array.isArray(data?.topCandidates) ? data.topCandidates : []);
+    } catch (error) {
+      console.error('Failed to fetch top candidates');
+      setTopCandidates([]);
+    }
+  }
+
+  async function fetchJobRankingList(jobId) {
+    if (!jobId) {
+      setJobRankingList([]);
+      return;
+    }
+
+    try {
+      const data = await apiRequest(`/candidates/ranking/${jobId}`);
+      setJobRankingList(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Failed to fetch ranking list');
+      setJobRankingList([]);
+    }
+  }
+
+  // Pulls interview session + candidate random order for a selected job.
+  async function fetchInterviewSession(jobId) {
+    if (!jobId) {
+      setInterviewSession(null);
+      return null;
+    }
+
+    try {
+      const data = await apiRequest(`/interviews/jobs/${jobId}/session`);
+      setInterviewSession(data || null);
+      return data;
+    } catch (_error) {
+      setInterviewSession(null);
+      return null;
+    }
+  }
+
+  async function fetchMyOrgProfile() {
+    try {
+      const data = await apiRequest('/auth/me');
+      setOrgProfileForm({
+        fullName: data.fullName || '',
+        bio: data.bio || '',
+        experience: data.experience || '',
+        skills: Array.isArray(data.skills) ? data.skills.join(', ') : ''
+      });
+      setOrgProfileMeta({ cvFileName: data.cvFileName || null, userCode: data.userCode || '' });
+    } catch (error) {
+      setMessage(error.message || 'Failed to load profile');
+      setSuccess(false);
+    }
+  }
+
+  async function handleSearchMemberProfiles() {
+    setSearchingCandidates(true);
+    try {
+      const query = encodeURIComponent(memberSearchQuery.trim());
+      const data = await apiRequest(`/auth/team-member-candidates?query=${query}`);
+      setMemberCandidates(Array.isArray(data) ? data : []);
+    } catch (error) {
+      setMessage(error.message || 'Failed to search profiles');
+      setSuccess(false);
+      setMemberCandidates([]);
+    } finally {
+      setSearchingCandidates(false);
+    }
+  }
+
+  async function handleAddFromProfile(applicantId) {
+    setLoading(true);
+    setMessage('');
+    try {
+      const result = await apiRequest('/auth/team-members/from-profile', 'POST', { applicantId });
+      setMessage(`${result.message}. Code: ${result.panelistCode}. Temporary Password: ${result.temporaryPassword}`);
+      setSuccess(true);
+      await fetchTeamMembers();
+      await handleSearchMemberProfiles();
+    } catch (error) {
+      setMessage(error.message);
+      setSuccess(false);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleAdminShortlistJobChange(jobIdValue) {
+    const num = Number(jobIdValue);
+    setSelectedJob(jobs.find((j) => j.id === num) || null);
+    if (!num) {
+      setShortlistedCandidates([]);
+      setTopCandidates([]);
+      setInterviewSession(null);
+      return;
+    }
+    await fetchShortlist(num);
+    await fetchTopCandidates(num);
+    await fetchInterviewSession(num);
+  }
+
+  async function handleUpdateOrgProfile(e) {
+    e.preventDefault();
+    setLoading(true);
+    setMessage('');
+    try {
+      const formData = new FormData();
+      formData.append('fullName', orgProfileForm.fullName);
+      formData.append('bio', orgProfileForm.bio);
+      formData.append('experience', orgProfileForm.experience);
+      formData.append('skills', JSON.stringify(toKeywords(orgProfileForm.skills)));
+      if (orgProfileCv) {
+        formData.append('cv', orgProfileCv);
+      }
+
+      const response = await fetch('/api/auth/me', {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${orgToken}` },
+        body: formData
+      });
+
+      const raw = await response.text();
+      let parsed = {};
+      try {
+        parsed = raw ? JSON.parse(raw) : {};
+      } catch {
+        parsed = { message: raw || 'Failed to update profile' };
+      }
+
+      if (!response.ok) {
+        throw new Error(parsed.message || 'Failed to update profile');
+      }
+
+      const profile = parsed.profile || {};
+      setOrgProfileMeta({
+        cvFileName: profile.cvFileName || null,
+        userCode: profile.userCode || orgProfileMeta.userCode
+      });
+
+      const updatedOrgUser = {
+        ...orgUser,
+        name: profile.fullName || orgUser?.name
+      };
+      setOrgUser(updatedOrgUser);
+      localStorage.setItem('org_user_data', JSON.stringify(updatedOrgUser));
+
+      setOrgProfileCv(null);
+      setMessage('Profile updated successfully');
+      setSuccess(true);
+    } catch (error) {
+      setMessage(error.message);
+      setSuccess(false);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function setCurrentPage(nextPage) {
+    const targetPath = pageToPath[nextPage] || pageToPath.landing;
+    setCurrentPageState(nextPage);
+    if (location.pathname !== targetPath) {
+      navigate(targetPath);
     }
   }
 
@@ -118,12 +397,6 @@ export default function App() {
     e.preventDefault();
     setLoading(true);
     setMessage('');
-    if (applicantRegisterForm.password.length < 6) {
-      setMessage('Password must be at least 6 characters');
-      setSuccess(false);
-      setLoading(false);
-      return;
-    }
     try {
       const result = await apiRequest('/applicants/register', 'POST', applicantRegisterForm);
       const applicantData = {
@@ -132,17 +405,20 @@ export default function App() {
         email: result.email,
         phone: applicantRegisterForm.phone || '',
         location: applicantRegisterForm.location || '',
-        experienceLevel: applicantRegisterForm.experienceLevel,
-        skills: toKeywords(applicantRegisterForm.skills),
+        experienceLevel: 'entry',
+        skills: [],
         resumeFileName: null
       };
       localStorage.setItem('applicant_token', result.token);
       localStorage.setItem('applicant_data', JSON.stringify(applicantData));
       setApplicantToken(result.token);
       setApplicant(applicantData);
-      setMessage('Account created successfully!');
+      const emailMessage = result.passwordDelivery === 'sent'
+        ? 'Account created. A temporary password has been sent to your email.'
+        : `Account created. Email delivery unavailable. Temporary password: ${result.temporaryPassword}`;
+      setMessage(emailMessage);
       setSuccess(true);
-      setApplicantRegisterForm({ fullName: '', email: '', password: '', phone: '', location: '', experienceLevel: 'entry', skills: '' });
+      setApplicantRegisterForm({ fullName: '', email: '', phone: '', location: '' });
       setCurrentPage('applicant-dashboard');
     } catch (error) {
       setMessage(error.message);
@@ -169,6 +445,10 @@ export default function App() {
         skills: Array.isArray(result.skills) ? result.skills : (result.skills ? JSON.parse(result.skills) : []),
         resumeFileName: result.resumeFileName || null
       };
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('org_user_data');
+      setOrgToken('');
+      setOrgUser(null);
       localStorage.setItem('applicant_token', result.token);
       localStorage.setItem('applicant_data', JSON.stringify(applicantData));
       setApplicantToken(result.token);
@@ -190,7 +470,7 @@ export default function App() {
     e.preventDefault();
     setLoading(true);
     setMessage('');
-    if (orgRegisterForm.adminPassword.length < 6) {
+    if (orgRegisterForm.managerPassword.length < 6) {
       setMessage('Password must be at least 6 characters');
       setSuccess(false);
       setLoading(false);
@@ -199,15 +479,15 @@ export default function App() {
     try {
       const result = await apiRequest('/auth/register-organization', 'POST', {
         organizationName: orgRegisterForm.organizationName,
-        adminName: orgRegisterForm.adminName,
-        adminEmail: orgRegisterForm.adminEmail,
-        adminPassword: orgRegisterForm.adminPassword
+        managerName: orgRegisterForm.managerName,
+        managerEmail: orgRegisterForm.managerEmail,
+        managerPassword: orgRegisterForm.managerPassword
       });
       setMessage('Organization registered! Account Code: ' + result.accountCode);
       setSuccess(true);
       setTimeout(() => {
-        setOrgLoginForm({ email: orgRegisterForm.adminEmail, password: orgRegisterForm.adminPassword });
-        setCurrentPage('org-login');
+        setOrgLoginForm({ email: orgRegisterForm.managerEmail, password: orgRegisterForm.managerPassword });
+        setCurrentPage('login');
       }, 2000);
     } catch (error) {
       setMessage(error.message);
@@ -233,11 +513,15 @@ export default function App() {
         organizationId: serverUser.organizationId,
         organizationName: serverUser.organizationName
       };
+      localStorage.removeItem('applicant_token');
+      localStorage.removeItem('applicant_data');
+      setApplicantToken('');
+      setApplicant(null);
       localStorage.setItem('auth_token', result.token);
       localStorage.setItem('org_user_data', JSON.stringify(userData));
       setOrgToken(result.token);
       setOrgUser(userData);
-      setMessage(`Welcome, ${userData.role === 'admin' ? 'Admin' : 'Panelist'}!`);
+      setMessage(`Welcome, ${userData.role === 'admin' ? 'Manager' : 'Team Member'}!`);
       setSuccess(true);
       setOrgLoginForm({ email: '', password: '' });
       setCurrentPage(userData.role === 'admin' ? 'admin-dashboard' : 'panelist-dashboard');
@@ -277,7 +561,7 @@ export default function App() {
       formData.append('experienceLevel', profileForm.experienceLevel);
       formData.append('skills', JSON.stringify(toKeywords(profileForm.skills)));
       if (profileResume) {
-        formData.append('file', profileResume);
+        formData.append('resume', profileResume);
       }
 
       const response = await fetch('/api/applicants/profile', {
@@ -316,11 +600,16 @@ export default function App() {
     setLoading(true);
     setMessage('');
     try {
+      const targetJob = jobs.find((job) => String(job.id) === String(applicationForm.jobId));
+      if (targetJob && hasDeadlinePassed(targetJob.application_deadline)) {
+        setMessage('Application deadline has passed for this job.');
+        setSuccess(false);
+        setLoading(false);
+        return;
+      }
+
       const formData = new FormData();
       formData.append('jobId', applicationForm.jobId);
-      formData.append('qualificationScore', applicationForm.qualificationScore || '0');
-      formData.append('experienceYears', applicationForm.experienceYears || '0');
-      formData.append('profileKeywords', JSON.stringify(toKeywords(applicationForm.profileKeywords)));
 
       const response = await fetch('/api/candidates/apply', {
         method: 'POST',
@@ -334,9 +623,13 @@ export default function App() {
       const msg = result.usedSavedResume 
         ? `Application submitted! Code: ${result.candidateCode}. Your saved resume was used.`
         : `Application submitted! Code: ${result.candidateCode}`;
-      setMessage(msg);
+      const shortlistMsg = result.shortlisted
+        ? ` You are currently shortlisted at rank #${result.rankPosition}.`
+        : ' Your application is received and under review for shortlist.';
+      setMessage(msg + shortlistMsg);
       setSuccess(true);
-      setApplicationForm({ jobId: '', qualificationScore: '', experienceYears: '', profileKeywords: '' });
+      setApplicationForm({ jobId: '' });
+      setCvRating(null);
       await fetchApplications();
       setCurrentPage('applicant-dashboard');
     } catch (error) {
@@ -356,11 +649,12 @@ export default function App() {
       await apiRequest('/jobs', 'POST', {
         title: jobForm.title,
         description: jobForm.description,
-        criteriaKeywords: toKeywords(jobForm.criteria_keywords)
+        criteriaKeywords: toKeywords(jobForm.criteria_keywords),
+        applicationDeadline: jobForm.applicationDeadline
       });
       setMessage('Job created successfully!');
       setSuccess(true);
-      setJobForm({ title: '', description: '', criteria_keywords: '' });
+      setJobForm({ title: '', description: '', criteria_keywords: '', applicationDeadline: '' });
       await fetchJobs();
       setCurrentPage('admin-jobs');
     } catch (error) {
@@ -371,431 +665,377 @@ export default function App() {
     }
   }
 
-  // ===== LANDING PAGE =====
-  if (!isApplicant && !isOrgUser && currentPage === 'landing') {
+  async function handleRemoveTeamMember(memberId, memberName) {
+    const shouldDelete = window.confirm(`Remove ${memberName}? This cannot be undone.`);
+    if (!shouldDelete) {
+      return;
+    }
+
+    setLoading(true);
+    setMessage('');
+    try {
+      const result = await apiRequest(`/auth/team-members/${memberId}`, 'DELETE');
+      setMessage(result.message || 'Team member removed successfully.');
+      setSuccess(true);
+      await fetchTeamMembers();
+    } catch (error) {
+      setMessage(error.message);
+      setSuccess(false);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Admin action: create one interview day/session for this job.
+  async function handleCreateInterviewSession(interviewDate) {
+    if (!selectedJob?.id) {
+      setMessage('Select a job first.');
+      setSuccess(false);
+      return;
+    }
+
+    setLoading(true);
+    setMessage('');
+    try {
+      await apiRequest(`/interviews/jobs/${selectedJob.id}/session`, 'POST', { interviewDate });
+      setMessage('Interview session created successfully.');
+      setSuccess(true);
+      await fetchInterviewSession(selectedJob.id);
+    } catch (error) {
+      setMessage(error.message);
+      setSuccess(false);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Admin action: batch-send interview invite emails to the shortlisted session candidates.
+  async function handleSendInterviewInvites() {
+    if (!selectedJob?.id) {
+      setMessage('Select a job first.');
+      setSuccess(false);
+      return;
+    }
+
+    setLoading(true);
+    setMessage('');
+    try {
+      const result = await apiRequest(`/interviews/jobs/${selectedJob.id}/send-invites`, 'POST');
+      setMessage(`Invite processing complete. Sent: ${result.sent || 0}, Failed: ${result.failed || 0}`);
+      setSuccess(true);
+      await fetchInterviewSession(selectedJob.id);
+    } catch (error) {
+      setMessage(error.message);
+      setSuccess(false);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handlePanelJobChange(jobId) {
+    setPanelJobId(jobId);
+    setScoreDrafts({});
+    setDrawnCandidate(null);
+    if (!jobId) {
+      setShortlistedCandidates([]);
+      setInterviewSession(null);
+      return;
+    }
+    await fetchShortlist(jobId);
+    await fetchInterviewSession(jobId);
+  }
+
+  // Panelist action: gets the next random candidate for interview-day scoring.
+  async function handleDrawNextCandidate() {
+    if (!panelJobId) {
+      setMessage('Select a job first.');
+      setSuccess(false);
+      return;
+    }
+
+    setLoading(true);
+    setMessage('');
+    try {
+      const result = await apiRequest(`/interviews/jobs/${panelJobId}/draw-next`, 'POST');
+      if (result.done) {
+        setDrawnCandidate(null);
+        setMessage('All shortlisted candidates have already been interviewed.');
+        setSuccess(true);
+      } else {
+        setDrawnCandidate(result.candidate || null);
+        setMessage(`Candidate drawn: ${result.candidate?.candidateCode || '-'}`);
+        setSuccess(true);
+      }
+
+      await fetchInterviewSession(panelJobId);
+    } catch (error) {
+      setMessage(error.message);
+      setSuccess(false);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleSubmitScore(candidateId) {
+    const draft = scoreDrafts[candidateId] || { score: '', notes: '' };
+    const numericScore = Number(draft.score);
+    if (Number.isNaN(numericScore) || numericScore < 0 || numericScore > 65) {
+      setMessage('Score must be a number between 0 and 65');
+      setSuccess(false);
+      return;
+    }
+
+    setLoading(true);
+    setMessage('');
+    try {
+      await apiRequest('/scores', 'POST', {
+        jobId: Number(panelJobId),
+        candidateId: Number(candidateId),
+        score: numericScore,
+        notes: draft.notes || ''
+      });
+      setMessage('Interview score submitted successfully.');
+      setSuccess(true);
+      if (drawnCandidate && Number(drawnCandidate.candidateId) === Number(candidateId)) {
+        setDrawnCandidate(null);
+      }
+      await fetchInterviewSession(panelJobId);
+    } catch (error) {
+      setMessage(error.message);
+      setSuccess(false);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleRateCv() {
+    if (!applicant?.resumeFileName) {
+      setMessage('Please upload a resume in your profile first.');
+      setSuccess(false);
+      return;
+    }
+
+    setRatingLoading(true);
+    setMessage('');
+    try {
+      const jobId = applicationForm?.jobId || selectedJob?.id || '';
+      const query = jobId ? `?jobId=${encodeURIComponent(jobId)}` : '';
+      const result = await apiRequest(`/applicants/cv-feedback${query}`);
+      setCvRating(result);
+      setMessage(`CV rating complete: ${result.rating}/10`);
+      setSuccess(true);
+    } catch (error) {
+      setMessage(error.message || 'Failed to rate CV');
+      setSuccess(false);
+      setCvRating(null);
+    } finally {
+      setRatingLoading(false);
+    }
+  }
+
+  async function handleDownloadCv() {
+    if (!applicantToken) {
+      setMessage('Please log in again to access your CV.');
+      setSuccess(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/applicants/resume`, {
+        headers: {
+          Authorization: `Bearer ${applicantToken}`
+        }
+      });
+
+      if (!response.ok) {
+        const raw = await response.text();
+        throw new Error(raw || 'Failed to download CV');
+      }
+
+      const blob = await response.blob();
+      const disposition = response.headers.get('Content-Disposition') || '';
+      const match = disposition.match(/filename="?([^";]+)"?/i);
+      const fileName = match?.[1] || applicant?.resumeFileName || 'my-cv';
+
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(link.href);
+
+      setMessage('CV downloaded successfully.');
+      setSuccess(true);
+    } catch (error) {
+      setMessage(error.message || 'Failed to download CV');
+      setSuccess(false);
+    }
+  }
+
+  async function handleDeleteApplication(candidateId) {
+    const shouldDelete = window.confirm('Delete this application?');
+    if (!shouldDelete) {
+      return;
+    }
+
+    setLoading(true);
+    setMessage('');
+    try {
+      await apiRequest(`/candidates/my-applications/${candidateId}`, 'DELETE');
+      setMessage('Application deleted successfully.');
+      setSuccess(true);
+      await fetchApplications();
+      await fetchJobs();
+    } catch (error) {
+      setMessage(error.message || 'Failed to delete application');
+      setSuccess(false);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleGuestAuthSuccess(payload) {
+    if (payload.accountType === 'applicant') {
+      setApplicantToken(payload.token);
+      setApplicant(payload.applicantData);
+      setOrgToken('');
+      setOrgUser(null);
+      setCurrentPage('applicant-dashboard');
+      return;
+    }
+
+    setOrgToken(payload.token);
+    setOrgUser(payload.userData);
+    setApplicantToken('');
+    setApplicant(null);
+    setCurrentPage(payload.userData.role === 'admin' ? 'admin-dashboard' : 'panelist-dashboard');
+  }
+
+  if (!isApplicant && !isOrgUser) {
     return (
-      <div className="page page-landing">
-        <header className="landing-header">
-          <h1>CIVIRA</h1>
-          <p className="subtitle">Transparent Public Recruitment System</p>
-          <p className="tagline">Ending Favouritism. Empowering Merit. Protecting Lives.</p>
-        </header>
-
-        <div className="portal-grid">
-          <div className="portal-card">
-            <div className="portal-icon">👤</div>
-            <h2>Job Applicants</h2>
-            <p>Discover job openings, apply directly, and track your application progress.</p>
-            <div className="portal-actions">
-              <button className="btn-primary" onClick={() => setCurrentPage('applicant-login')}>Login</button>
-              <button className="btn-secondary" onClick={() => setCurrentPage('applicant-register')}>Register</button>
-            </div>
-          </div>
-
-          <div className="portal-card">
-            <div className="portal-icon">🏢</div>
-            <h2>Organizations</h2>
-            <p>Create jobs, review candidates, coordinate panel scoring, and make final selections.</p>
-            <div className="portal-actions">
-              <button className="btn-primary" onClick={() => setCurrentPage('org-login')}>Login</button>
-              <button className="btn-secondary" onClick={() => setCurrentPage('org-register')}>Register</button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <GuestRoutes
+        currentPage={currentPage}
+        loading={loading}
+        setLoading={setLoading}
+        message={message}
+        setMessage={setMessage}
+        success={success}
+        setSuccess={setSuccess}
+        setCurrentPage={setCurrentPage}
+        onAuthSuccess={handleGuestAuthSuccess}
+        setApplicantToken={setApplicantToken}
+        setApplicant={setApplicant}
+      />
     );
   }
 
-  // ===== APPLICANT LOGIN =====
-  if (!isApplicant && currentPage === 'applicant-login') {
-    return (
-      <div className="page page-auth">
-        <div className="auth-container">
-          <div className="auth-card">
-            <h2>Applicant Login</h2>
-            <form onSubmit={handleApplicantLogin}>
-              <input type="email" placeholder="Email" value={applicantLoginForm.email} onChange={(e) => setApplicantLoginForm({...applicantLoginForm, email: e.target.value})} required />
-              <input type="password" placeholder="Password" value={applicantLoginForm.password} onChange={(e) => setApplicantLoginForm({...applicantLoginForm, password: e.target.value})} required />
-              <button type="submit" className="btn-primary" disabled={loading}>{loading ? 'Logging in...' : 'Login'}</button>
-            </form>
-            {message && <div className={`message ${success ? 'success' : 'error'}`}>{message}</div>}
-            <p className="auth-link">Don't have an account? <button className="btn-link" onClick={() => setCurrentPage('applicant-register')}>Register</button></p>
-            <button className="btn-back" onClick={() => setCurrentPage('landing')}>← Back</button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ===== APPLICANT REGISTER =====
-  if (!isApplicant && currentPage === 'applicant-register') {
-    return (
-      <div className="page page-auth">
-        <div className="auth-container">
-          <div className="auth-card">
-            <h2>Create Applicant Account</h2>
-            <form onSubmit={handleApplicantRegister}>
-              <input type="text" placeholder="Full Name" value={applicantRegisterForm.fullName} onChange={(e) => setApplicantRegisterForm({...applicantRegisterForm, fullName: e.target.value})} required />
-              <input type="email" placeholder="Email" value={applicantRegisterForm.email} onChange={(e) => setApplicantRegisterForm({...applicantRegisterForm, email: e.target.value})} required />
-              <input type="password" placeholder="Password (min 6 chars)" value={applicantRegisterForm.password} onChange={(e) => setApplicantRegisterForm({...applicantRegisterForm, password: e.target.value})} required minLength="6" />
-              <input type="tel" placeholder="Phone (optional)" value={applicantRegisterForm.phone} onChange={(e) => setApplicantRegisterForm({...applicantRegisterForm, phone: e.target.value})} />
-              <input type="text" placeholder="Location (optional)" value={applicantRegisterForm.location} onChange={(e) => setApplicantRegisterForm({...applicantRegisterForm, location: e.target.value})} />
-              <select value={applicantRegisterForm.experienceLevel} onChange={(e) => setApplicantRegisterForm({...applicantRegisterForm, experienceLevel: e.target.value})}>
-                <option value="entry">Entry Level</option>
-                <option value="mid">Mid Level</option>
-                <option value="senior">Senior</option>
-                <option value="executive">Executive</option>
-              </select>
-              <textarea placeholder="Skills (comma-separated, optional)" value={applicantRegisterForm.skills} onChange={(e) => setApplicantRegisterForm({...applicantRegisterForm, skills: e.target.value})} rows="3"></textarea>
-              <button type="submit" className="btn-primary" disabled={loading}>{loading ? 'Creating...' : 'Create Account'}</button>
-            </form>
-            {message && <div className={`message ${success ? 'success' : 'error'}`}>{message}</div>}
-            <p className="auth-link">Already have an account? <button className="btn-link" onClick={() => setCurrentPage('applicant-login')}>Login</button></p>
-            <button className="btn-back" onClick={() => setCurrentPage('landing')}>← Back</button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ===== ORG LOGIN =====
-  if (!isOrgUser && currentPage === 'org-login') {
-    return (
-      <div className="page page-auth">
-        <div className="auth-container">
-          <div className="auth-card">
-            <h2>Organization Login</h2>
-            <form onSubmit={handleOrgLogin}>
-              <input type="email" placeholder="Email" value={orgLoginForm.email} onChange={(e) => setOrgLoginForm({...orgLoginForm, email: e.target.value})} required />
-              <input type="password" placeholder="Password" value={orgLoginForm.password} onChange={(e) => setOrgLoginForm({...orgLoginForm, password: e.target.value})} required />
-              <button type="submit" className="btn-primary" disabled={loading}>{loading ? 'Logging in...' : 'Login'}</button>
-            </form>
-            {message && <div className={`message ${success ? 'success' : 'error'}`}>{message}</div>}
-            <p className="auth-link">New organization? <button className="btn-link" onClick={() => setCurrentPage('org-register')}>Register</button></p>
-            <button className="btn-back" onClick={() => setCurrentPage('landing')}>← Back</button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ===== ORG REGISTER =====
-  if (!isOrgUser && currentPage === 'org-register') {
-    return (
-      <div className="page page-auth">
-        <div className="auth-container">
-          <div className="auth-card">
-            <h2>Register Organization</h2>
-            <form onSubmit={handleOrgRegister}>
-              <input type="text" placeholder="Organization Name" value={orgRegisterForm.organizationName} onChange={(e) => setOrgRegisterForm({...orgRegisterForm, organizationName: e.target.value})} required />
-              <input type="text" placeholder="Admin Name" value={orgRegisterForm.adminName} onChange={(e) => setOrgRegisterForm({...orgRegisterForm, adminName: e.target.value})} required />
-              <input type="email" placeholder="Admin Email" value={orgRegisterForm.adminEmail} onChange={(e) => setOrgRegisterForm({...orgRegisterForm, adminEmail: e.target.value})} required />
-              <input type="password" placeholder="Password (min 6 chars)" value={orgRegisterForm.adminPassword} onChange={(e) => setOrgRegisterForm({...orgRegisterForm, adminPassword: e.target.value})} required minLength="6" />
-              <button type="submit" className="btn-primary" disabled={loading}>{loading ? 'Registering...' : 'Register'}</button>
-            </form>
-            {message && <div className={`message ${success ? 'success' : 'error'}`}>{message}</div>}
-            <p className="auth-link">Already registered? <button className="btn-link" onClick={() => setCurrentPage('org-login')}>Login</button></p>
-            <button className="btn-back" onClick={() => setCurrentPage('landing')}>← Back</button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ===== APPLICANT PAGES =====
   if (isApplicant) {
     return (
-      <div className="app-page">
-        <header className="app-header">
-          <div className="header-content">
-            <h1>CIVIRA</h1>
-            <p className="header-subtitle">Applicant Portal</p>
-          </div>
-          <div className="header-user">
-            <span>👤 {applicant?.fullName}</span>
-            <button className="btn-logout" onClick={handleLogout}>Logout</button>
-          </div>
-        </header>
-
-        <nav className="app-nav">
-          <button className={`nav-btn ${currentPage === 'applicant-dashboard' ? 'active' : ''}`} onClick={() => setCurrentPage('applicant-dashboard')}>Dashboard</button>
-          <button className={`nav-btn ${currentPage === 'applicant-browse' ? 'active' : ''}`} onClick={() => setCurrentPage('applicant-browse')}>Browse Jobs</button>
-          <button className={`nav-btn ${currentPage === 'applicant-apply' ? 'active' : ''}`} onClick={() => setCurrentPage('applicant-apply')}>Apply</button>
-          <button className={`nav-btn ${currentPage === 'applicant-profile' ? 'active' : ''}`} onClick={() => setCurrentPage('applicant-profile')}>Profile</button>
-        </nav>
-
-        {message && <div className={`message ${success ? 'success' : 'error'}`}>{message}</div>}
-
-        {currentPage === 'applicant-dashboard' && (
-          <div className="page-content">
-            <div className="content-container">
-              <h1>My Applications</h1>
-              {myApplications.length === 0 ? (
-                <p className="empty-state">No applications yet. <button className="btn-link" onClick={() => setCurrentPage('applicant-browse')}>Browse jobs</button></p>
-              ) : (
-                <div className="applications-grid">
-                  {myApplications.map(app => (
-                    <div key={app.id} className="application-card">
-                      <h3>{app.job_title}</h3>
-                      <p><strong>Code:</strong> {app.candidate_code}</p>
-                      <p><strong>Applied:</strong> {formatDate(app.created_at)}</p>
-                      <p className={`status-badge ${app.rank_position ? 'shortlisted' : 'pending'}`}>
-                        {app.rank_position ? `✓ Shortlisted (#${app.rank_position})` : '○ Under Review'}
-                      </p>
-                      {app.ranking_score && <p><strong>Score:</strong> {parseFloat(app.ranking_score).toFixed(2)}</p>}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {currentPage === 'applicant-browse' && (
-          <div className="page-content">
-            <div className="content-container">
-              <h1>Browse Jobs</h1>
-              {jobs.length === 0 ? (
-                <p className="empty-state">No jobs available.</p>
-              ) : (
-                <div className="jobs-grid">
-                  {jobs.map(job => (
-                    <div key={job.id} className="job-card">
-                      <h3>{job.title}</h3>
-                      <p>{job.description || 'No description'}</p>
-                      <p><strong>Keywords:</strong> {Array.isArray(job.criteria_keywords) ? job.criteria_keywords.join(', ') : 'N/A'}</p>
-                      <p className={`badge ${job.status}`}>{job.status}</p>
-                      <button className="btn-primary" onClick={() => { setApplicationForm({...applicationForm, jobId: String(job.id)}); setCurrentPage('applicant-apply'); }}>Apply Now</button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {currentPage === 'applicant-apply' && (
-          <div className="page-content">
-            <div className="content-container">
-              <h1>Submit Application</h1>
-              <form onSubmit={handleApply} className="form">
-                <select value={applicationForm.jobId} onChange={(e) => {setApplicationForm({...applicationForm, jobId: e.target.value}); setSelectedJob(jobs.find(j => String(j.id) === e.target.value));}} required>
-                  <option value="">Select a Job</option>
-                  {jobs.map(j => (<option key={j.id} value={j.id}>{j.title}</option>))}
-                </select>
-
-                {selectedJob && (
-                  <div className="job-preview">
-                    <h2>{selectedJob.title}</h2>
-                    <p>{selectedJob.description}</p>
-                    <p><strong>Keywords:</strong> {Array.isArray(selectedJob.criteria_keywords) ? selectedJob.criteria_keywords.join(', ') : 'N/A'}</p>
-                  </div>
-                )}
-
-                <input type="number" placeholder="Qualification Score (0-100)" value={applicationForm.qualificationScore} onChange={(e) => setApplicationForm({...applicationForm, qualificationScore: e.target.value})} />
-                <input type="number" placeholder="Years of Experience" value={applicationForm.experienceYears} onChange={(e) => setApplicationForm({...applicationForm, experienceYears: e.target.value})} />
-                <textarea placeholder="Your Keywords (comma-separated)" value={applicationForm.profileKeywords} onChange={(e) => setApplicationForm({...applicationForm, profileKeywords: e.target.value})} rows="3"></textarea>
-
-                {applicant?.resumeFileName && <p className="info">✓ Saved resume: {applicant.resumeFileName}</p>}
-                <button type="submit" className="btn-primary" disabled={loading}>{loading ? 'Submitting...' : 'Submit Application'}</button>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {currentPage === 'applicant-profile' && (
-          <div className="page-content">
-            <div className="content-container">
-              <h1>My Profile</h1>
-              <form onSubmit={handleUpdateProfile} className="form">
-                <p><strong>Email:</strong> {applicant?.email}</p>
-                <p><strong>Name:</strong> {applicant?.fullName}</p>
-                {applicant?.resumeFileName && <p><strong>Saved Resume:</strong> {applicant.resumeFileName}</p>}
-
-                <input type="tel" placeholder="Phone" value={profileForm.phone} onChange={(e) => setProfileForm({...profileForm, phone: e.target.value})} />
-                <input type="text" placeholder="Location" value={profileForm.location} onChange={(e) => setProfileForm({...profileForm, location: e.target.value})} />
-                <select value={profileForm.experienceLevel} onChange={(e) => setProfileForm({...profileForm, experienceLevel: e.target.value})}>
-                  <option value="entry">Entry Level</option>
-                  <option value="mid">Mid Level</option>
-                  <option value="senior">Senior</option>
-                  <option value="executive">Executive</option>
-                </select>
-                <textarea placeholder="Skills (comma-separated)" value={profileForm.skills} onChange={(e) => setProfileForm({...profileForm, skills: e.target.value})} rows="3"></textarea>
-
-                <div className="file-upload">
-                  <label>Upload/Update Resume</label>
-                  <input type="file" accept=".pdf,.docx,.txt" onChange={(e) => setProfileResume(e.target.files?.[0] || null)} />
-                  {profileResume && <p className="upload-status">✓ {profileResume.name}</p>}
-                </div>
-
-                <button type="submit" className="btn-primary" disabled={loading}>{loading ? 'Saving...' : 'Save Profile'}</button>
-              </form>
-            </div>
-          </div>
-        )}
-      </div>
+      <ApplicantApp
+        AccountIcon={AccountIcon}
+        currentPage={currentPage}
+        applicant={applicant}
+        handleLogout={handleLogout}
+        setCurrentPage={setCurrentPage}
+        myApplications={myApplications}
+        rankingExpanded={rankingExpanded}
+        setRankingExpanded={setRankingExpanded}
+        jobRankingList={jobRankingList}
+        fetchJobRankingList={fetchJobRankingList}
+        loading={loading}
+        handleDeleteApplication={handleDeleteApplication}
+        jobs={jobs}
+        applicationForm={applicationForm}
+        setApplicationForm={setApplicationForm}
+        selectedJob={selectedJob}
+        setSelectedJob={setSelectedJob}
+        cvRating={cvRating}
+        ratingLoading={ratingLoading}
+        handleRateCv={handleRateCv}
+        handleApply={handleApply}
+        profileForm={profileForm}
+        setProfileForm={setProfileForm}
+        profileResume={profileResume}
+        setProfileResume={setProfileResume}
+        handleDownloadCv={handleDownloadCv}
+        handleUpdateProfile={handleUpdateProfile}
+      />
     );
   }
 
-  // ===== ADMIN PAGES =====
   if (isAdmin) {
     return (
-      <div className="app-page">
-        <header className="app-header">
-          <div className="header-content">
-            <h1>CIVIRA</h1>
-            <p className="header-subtitle">Admin Dashboard</p>
-          </div>
-          <div className="header-user">
-            <span>👨‍💼 {orgUser?.name}</span>
-            <button className="btn-logout" onClick={handleLogout}>Logout</button>
-          </div>
-        </header>
-
-        <nav className="app-nav">
-          <button className={`nav-btn ${currentPage === 'admin-dashboard' ? 'active' : ''}`} onClick={() => setCurrentPage('admin-dashboard')}>Dashboard</button>
-          <button className={`nav-btn ${currentPage === 'admin-jobs' ? 'active' : ''}`} onClick={() => setCurrentPage('admin-jobs')}>Manage Jobs</button>
-          <button className={`nav-btn ${currentPage === 'admin-shortlist' ? 'active' : ''}`} onClick={() => setCurrentPage('admin-shortlist')}>Shortlist</button>
-        </nav>
-
-        {message && <div className={`message ${success ? 'success' : 'error'}`}>{message}</div>}
-
-        {currentPage === 'admin-dashboard' && (
-          <div className="page-content">
-            <div className="content-container">
-              <h1>Admin Dashboard</h1>
-              <div className="dashboard-stats">
-                <div className="stat-card">
-                  <h3>{jobs.length}</h3>
-                  <p>Active Jobs</p>
-                </div>
-              </div>
-              <div className="admin-actions">
-                <button className="btn-primary" onClick={() => setCurrentPage('admin-jobs')}>+ Create Job</button>
-                <button className="btn-secondary" onClick={() => setCurrentPage('admin-shortlist')}>Review Shortlist</button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {currentPage === 'admin-jobs' && (
-          <div className="page-content">
-            <div className="content-container">
-              <h1>Manage Jobs</h1>
-              <form onSubmit={handleCreateJob} className="form">
-                <input type="text" placeholder="Job Title" value={jobForm.title} onChange={(e) => setJobForm({...jobForm, title: e.target.value})} required />
-                <textarea placeholder="Job Description" value={jobForm.description} onChange={(e) => setJobForm({...jobForm, description: e.target.value})} rows="4"></textarea>
-                <input type="text" placeholder="Criteria Keywords (comma-separated)" value={jobForm.criteria_keywords} onChange={(e) => setJobForm({...jobForm, criteria_keywords: e.target.value})} />
-                <button type="submit" className="btn-primary" disabled={loading}>{loading ? 'Creating...' : 'Create Job'}</button>
-              </form>
-
-              <h2 style={{ marginTop: '40px' }}>Active Jobs</h2>
-              {jobs.length === 0 ? (
-                <p className="empty-state">No jobs yet.</p>
-              ) : (
-                <div className="jobs-list">
-                  {jobs.map(job => (
-                    <div key={job.id} className="job-item">
-                      <h3>{job.title}</h3>
-                      <p>{job.description || 'No description'}</p>
-                      <p><strong>Keywords:</strong> {Array.isArray(job.criteria_keywords) ? job.criteria_keywords.join(', ') : 'N/A'}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {currentPage === 'admin-shortlist' && (
-          <div className="page-content">
-            <div className="content-container">
-              <h1>Shortlist Management</h1>
-              <select value={selectedJob?.id || ''} onChange={(e) => {const num = Number(e.target.value); setSelectedJob(jobs.find(j => j.id === num)); if(num) fetchShortlist(num);}} className="select">
-                <option value="">Select a job</option>
-                {jobs.map(j => (<option key={j.id} value={j.id}>{j.title}</option>))}
-              </select>
-
-              {selectedJob && (
-                <div style={{ marginTop: '30px' }}>
-                  {shortlistedCandidates.length === 0 ? (
-                    <p className="empty-state">No shortlisted candidates yet.</p>
-                  ) : (
-                    <div className="candidates-table">
-                      <table>
-                        <thead>
-                          <tr>
-                            <th>Rank</th>
-                            <th>Name</th>
-                            <th>Code</th>
-                            <th>Email</th>
-                            <th>Score</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {shortlistedCandidates.map((cand, idx) => (
-                            <tr key={cand.id}>
-                              <td>#{idx + 1}</td>
-                              <td>{cand.fullName || cand.name}</td>
-                              <td>{cand.candidate_code}</td>
-                              <td>{cand.email}</td>
-                              <td>{parseFloat(cand.ranking_score).toFixed(2)}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
+      <AdminApp
+        AccountIcon={AccountIcon}
+        currentPage={currentPage}
+        orgUser={orgUser}
+        handleLogout={handleLogout}
+        setCurrentPage={setCurrentPage}
+        jobs={jobs}
+        loading={loading}
+        setLoading={setLoading}
+        message={message}
+        setMessage={setMessage}
+        success={success}
+        setSuccess={setSuccess}
+        fetchJobs={fetchJobs}
+        setSelectedJob={setSelectedJob}
+        selectedJob={selectedJob}
+        fetchShortlist={fetchShortlist}
+        shortlistedCandidates={shortlistedCandidates}
+        topCandidates={topCandidates}
+        handleAdminShortlistJobChange={handleAdminShortlistJobChange}
+        interviewSession={interviewSession}
+        handleCreateInterviewSession={handleCreateInterviewSession}
+        handleSendInterviewInvites={handleSendInterviewInvites}
+        memberSearchQuery={memberSearchQuery}
+        setMemberSearchQuery={setMemberSearchQuery}
+        handleSearchMemberProfiles={handleSearchMemberProfiles}
+        searchingCandidates={searchingCandidates}
+        memberCandidates={memberCandidates}
+        profileImageFromName={profileImageFromName}
+        profileBio={profileBio}
+        parseSkillList={parseSkillList}
+        handleAddFromProfile={handleAddFromProfile}
+        teamMembers={teamMembers}
+        handleRemoveTeamMember={handleRemoveTeamMember}
+        orgProfileMeta={orgProfileMeta}
+        orgProfileForm={orgProfileForm}
+        setOrgProfileForm={setOrgProfileForm}
+        orgProfileCv={orgProfileCv}
+        setOrgProfileCv={setOrgProfileCv}
+        handleUpdateOrgProfile={handleUpdateOrgProfile}
+      />
     );
   }
 
-  // ===== PANELIST PAGES =====
   if (isPanelist) {
     return (
-      <div className="app-page">
-        <header className="app-header">
-          <div className="header-content">
-            <h1>CIVIRA</h1>
-            <p className="header-subtitle">Panelist Portal</p>
-          </div>
-          <div className="header-user">
-            <span>👨‍⚖️ {orgUser?.name}</span>
-            <button className="btn-logout" onClick={handleLogout}>Logout</button>
-          </div>
-        </header>
-
-        <nav className="app-nav">
-          <button className={`nav-btn ${currentPage === 'panelist-dashboard' ? 'active' : ''}`} onClick={() => setCurrentPage('panelist-dashboard')}>Dashboard</button>
-          <button className={`nav-btn ${currentPage === 'panelist-scoring' ? 'active' : ''}`} onClick={() => setCurrentPage('panelist-scoring')}>Score Candidates</button>
-        </nav>
-
-        {message && <div className={`message ${success ? 'success' : 'error'}`}>{message}</div>}
-
-        {currentPage === 'panelist-dashboard' && (
-          <div className="page-content">
-            <div className="content-container">
-              <h1>Panelist Dashboard</h1>
-              <p className="info">Review and score applicants for assigned jobs.</p>
-              <button className="btn-primary" onClick={() => setCurrentPage('panelist-scoring')}>Score Candidates</button>
-            </div>
-          </div>
-        )}
-
-        {currentPage === 'panelist-scoring' && (
-          <div className="page-content">
-            <div className="content-container">
-              <h1>Score Candidates</h1>
-              <p className="info">Scoring interface for shortlisted candidates coming soon.</p>
-            </div>
-          </div>
-        )}
-      </div>
+      <PanelistApp
+        AccountIcon={AccountIcon}
+        currentPage={currentPage}
+        orgUser={orgUser}
+        handleLogout={handleLogout}
+        setCurrentPage={setCurrentPage}
+        panelJobId={panelJobId}
+        jobs={jobs}
+        handlePanelJobChange={handlePanelJobChange}
+        shortlistedCandidates={shortlistedCandidates}
+        scoreDrafts={scoreDrafts}
+        setScoreDrafts={setScoreDrafts}
+        loading={loading}
+        drawnCandidate={drawnCandidate}
+        interviewSession={interviewSession}
+        handleDrawNextCandidate={handleDrawNextCandidate}
+        handleSubmitScore={handleSubmitScore}
+        orgProfileMeta={orgProfileMeta}
+        orgProfileForm={orgProfileForm}
+        setOrgProfileForm={setOrgProfileForm}
+        orgProfileCv={orgProfileCv}
+        setOrgProfileCv={setOrgProfileCv}
+        handleUpdateOrgProfile={handleUpdateOrgProfile}
+      />
     );
   }
 

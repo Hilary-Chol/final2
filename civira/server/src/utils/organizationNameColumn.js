@@ -2,6 +2,7 @@ import pool from '../config/db.js';
 
 let cachedOrganizationNameColumn = null;
 
+// Exported to: server/src/controllers/authController.js, candidateController.js, jobController.js and scoreController.js
 export async function getOrganizationNameColumn() {
   if (cachedOrganizationNameColumn) {
     return cachedOrganizationNameColumn;

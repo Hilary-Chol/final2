@@ -3,27 +3,40 @@ import { saveAuditLog } from '../services/auditService.js';
 import { getOrganizationNameColumn } from '../utils/organizationNameColumn.js';
 import { parseKeywordArray } from '../utils/keywordParser.js';
 
+function isDeadlineExpired(value) {
+  if (!value) return false;
+  const deadline = new Date(value);
+  if (Number.isNaN(deadline.getTime())) return false;
+  deadline.setHours(23, 59, 59, 999);
+  return Date.now() > deadline.getTime();
+}
+
 function mapJobRow(job) {
+  const expired = isDeadlineExpired(job.application_deadline);
+
   return {
     ...job,
-    criteria_keywords: parseKeywordArray(job.criteria_keywords)
+    criteria_keywords: parseKeywordArray(job.criteria_keywords),
+    status: expired ? 'closed' : job.status,
+    is_expired: expired
   };
 }
 
+// Exported to: server/src/routes/jobRoutes.js -> router.post('/', requireAuth, createJob)
 export async function createJob(req, res) {
   try {
-    const { title, description, criteriaKeywords } = req.body;
+    const { title, description, criteriaKeywords, applicationDeadline } = req.body;
     const { organizationId, userId } = req.user;
 
     // This API opens a job and stores the organization-defined keyword criteria for ranking.
-    if (!title || !Array.isArray(criteriaKeywords)) {
-      return res.status(400).json({ message: 'Title and criteriaKeywords array are required' });
+    if (!title || !Array.isArray(criteriaKeywords) || !applicationDeadline) {
+      return res.status(400).json({ message: 'Title, criteriaKeywords array, and applicationDeadline are required' });
     }
 
     const [result] = await pool.query(
-      `INSERT INTO jobs (organization_id, title, description, criteria_keywords, created_by)
-       VALUES (?, ?, ?, ?, ?)`,
-      [organizationId, title, description || '', JSON.stringify(criteriaKeywords), userId]
+      `INSERT INTO jobs (organization_id, title, description, criteria_keywords, application_deadline, created_by)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [organizationId, title, description || '', JSON.stringify(criteriaKeywords), applicationDeadline, userId]
     );
 
     await saveAuditLog({
@@ -32,7 +45,7 @@ export async function createJob(req, res) {
       action: 'JOB_CREATED',
       targetType: 'job',
       targetId: result.insertId,
-      details: { title, criteriaKeywords }
+      details: { title, criteriaKeywords, applicationDeadline }
     });
 
     return res.status(201).json({ message: 'Job opened', jobId: result.insertId });
@@ -41,13 +54,14 @@ export async function createJob(req, res) {
   }
 }
 
+// Exported to: server/src/routes/jobRoutes.js -> router.get('/', requireAuth, listJobs)
 export async function listJobs(req, res) {
   try {
     const { organizationId } = req.user;
 
     // This API returns all jobs created by the authenticated organization account.
     const [rows] = await pool.query(
-      `SELECT id, title, description, criteria_keywords, status, created_at
+      `SELECT id, title, description, criteria_keywords, application_deadline, status, created_at
        FROM jobs
        WHERE organization_id = ?
        ORDER BY created_at DESC`,
@@ -62,14 +76,15 @@ export async function listJobs(req, res) {
   }
 }
 
+// Exported to: server/src/routes/jobRoutes.js -> router.get('/public', listPublicJobs)
 export async function listPublicJobs(_req, res) {
   try {
     const organizationNameColumn = await getOrganizationNameColumn();
     const [rows] = await pool.query(
-      `SELECT j.id, j.title, j.description, j.criteria_keywords, j.status, j.created_at, o.${organizationNameColumn} AS organization_name
+      `SELECT j.id, j.title, j.description, j.criteria_keywords, j.application_deadline, j.status, j.created_at, o.${organizationNameColumn} AS organization_name
        FROM jobs j
        JOIN organizations o ON o.id = j.organization_id
-       WHERE j.status = 'open'
+       WHERE j.status = 'open' AND (j.application_deadline IS NULL OR j.application_deadline >= CURDATE())
        ORDER BY j.created_at DESC`
     );
 

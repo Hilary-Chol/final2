@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 
+// Exported to: server/src/routes/authRoutes.js, auditRoutes.js, candidateRoutes.js, interviewRoutes.js, jobRoutes.js, scoreRoutes.js
 export function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization;
 
@@ -11,6 +12,11 @@ export function requireAuth(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    if (decoded.role === 'applicant') {
+      return res.status(403).json({ message: 'This endpoint requires organization authentication' });
+    }
+
     req.user = decoded;
     return next();
   } catch (error) {
@@ -18,6 +24,7 @@ export function requireAuth(req, res, next) {
   }
 }
 
+// Exported to: server/src/routes/authRoutes.js, auditRoutes.js, interviewRoutes.js, scoreRoutes.js
 export function requireRole(...allowedRoles) {
   return (req, res, next) => {
     if (!req.user || !allowedRoles.includes(req.user.role)) {

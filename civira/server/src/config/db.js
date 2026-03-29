@@ -13,4 +13,5 @@ const pool = mysql.createPool({
   connectionLimit: 10
 });
 
+// Exported to: shared DB pool imported by controllers, services, and utils modules across server/src.
 export default pool;

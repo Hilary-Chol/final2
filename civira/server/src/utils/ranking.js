@@ -1,5 +1,6 @@
 import { parseKeywordArray } from './keywordParser.js';
 
+// Exported to: server/src/controllers/candidateController.js and services/deadlineSchedulerService.js
 export function computeCandidateRanking(candidate, criteriaKeywords) {
   const candidateKeywords = parseKeywordArray(candidate.profile_keywords);
 
@@ -17,6 +18,7 @@ export function computeCandidateRanking(candidate, criteriaKeywords) {
   return Number(finalScore.toFixed(3));
 }
 
+// Exported to: server/src/controllers/candidateController.js and services/deadlineSchedulerService.js
 export function topTenCandidates(rankedCandidates) {
   return rankedCandidates.sort((a, b) => b.rankingScore - a.rankingScore).slice(0, 10);
 }

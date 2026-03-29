@@ -20,6 +20,7 @@ Civira is a hiring platform built with **React.js + Express.js + MySQL**.
 - Audit logs are stored for activity tracking.
 - JWT authentication secures protected endpoints.
 - Credentials can be sent using the free-tier **Resend Email API**.
+- CV text can be rated out of 10 using free-tier **Groq AI API** with local fallback.
 
 ## Project Structure
 
@@ -135,7 +136,11 @@ Frontend URL: `http://localhost:5173`
 - `POST /api/candidates/track`
 - `GET /api/audit` (admin only)
 
+### AI
+- `POST /api/ai/rate-cv` (body: `{ cvText, jobKeywords }`)
+
 ## Notes
 
 - API controllers include comments explaining what each endpoint does.
+- For CV AI rating, set `GROQ_API_KEY` in `server/.env` (free key from Groq console).
 - For production, hash strong passwords, use HTTPS, rotate JWT secrets, and validate input with a schema validator.

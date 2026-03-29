@@ -1,9 +1,18 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-function authHeaders() {
+function authHeaders(path = '') {
   const applicantToken = localStorage.getItem('applicant_token') || localStorage.getItem('civira_applicant_token');
   const orgToken = localStorage.getItem('auth_token') || localStorage.getItem('civira_token');
-  const token = applicantToken || orgToken;
+
+  const applicantPaths = [
+    '/applicants',
+    '/candidates/apply',
+    '/candidates/my-applications'
+  ];
+
+  const prefersApplicantToken = applicantPaths.some((prefix) => path.startsWith(prefix));
+  const token = prefersApplicantToken ? (applicantToken || orgToken) : (orgToken || applicantToken);
+
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
@@ -28,7 +37,7 @@ export async function apiRequest(path, methodOrOptions = {}, maybeBody) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...options,
     headers: {
-      ...authHeaders(),
+      ...authHeaders(path),
       ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       ...(options.headers || {})
     }

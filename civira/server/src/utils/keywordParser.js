@@ -1,3 +1,4 @@
+// Exported to: server/src/controllers/candidateController.js, jobController.js and services/deadlineSchedulerService.js (also used by utils/ranking.js)
 export function parseKeywordArray(value) {
   if (Array.isArray(value)) {
     return value.map((item) => String(item).trim()).filter(Boolean);

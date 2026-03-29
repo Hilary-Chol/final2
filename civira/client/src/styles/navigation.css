@@ -1,0 +1,45 @@
+/* Navigation Styles */
+.app-nav {
+  background: #16365f;
+  border-bottom: 1px solid #204a7f;
+  padding: 0 1rem;
+  display: flex;
+  gap: 2rem;
+  max-width: 100%;
+  overflow-x: auto;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.nav-btn {
+  padding: 1rem 1.5rem;
+  background: transparent;
+  border: none;
+  color: #c9dbf0;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.875rem;
+  position: relative;
+  white-space: nowrap;
+  transition: var(--transition);
+}
+
+.nav-btn:hover {
+  color: #ffffff;
+}
+
+.nav-btn.active {
+  color: var(--gold-soft);
+}
+
+.nav-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--gold);
+  border-radius: 3px 3px 0 0;
+}

@@ -8,4 +8,5 @@ router.get('/public', listPublicJobs);
 router.post('/', requireAuth, createJob);
 router.get('/', requireAuth, listJobs);
 
+// Exported to: server/src/index.js -> app.use('/api/jobs', jobRoutes)
 export default router;

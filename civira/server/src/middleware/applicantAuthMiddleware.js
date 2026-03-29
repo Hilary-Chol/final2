@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 
+// Exported to: server/src/routes/applicantRoutes.js and server/src/routes/candidateRoutes.js
 export function requireApplicantAuth(req, res, next) {
   const authHeader = req.headers.authorization;
 
