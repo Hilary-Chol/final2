@@ -7,12 +7,6 @@ export default function Landing({ onNavigate }) {
     <div className="page page-landing">
       <header className="landing-topbar">
         <div className="landing-brand">Civira</div>
-        <nav className="landing-topnav" aria-label="Landing Navigation">
-          <button className="btn-link" type="button">Features</button>
-          <button className="btn-link" type="button">Resources</button>
-          <button className="btn-link" type="button">Pricing</button>
-          <button className="btn-link" type="button">Company</button>
-        </nav>
         <button className="btn-link" type="button" onClick={() => onNavigate('login')}>Sign In</button>
       </header>
 
@@ -24,11 +18,8 @@ export default function Landing({ onNavigate }) {
           <button className="btn-primary" onClick={() => onNavigate('login')}>Login</button>
           <button className="btn-secondary" onClick={() => onNavigate('login')}>Register</button>
         </div>
-        <div className="hero-social-proof" aria-label="Social channels">
-          <span>○</span><span>○</span><span>○</span><span>○</span><span>○</span>
-        </div>
         <div className="hero-dashboard-mock" aria-hidden="true">
-          <img src="/images/hero-dashboard.svg" alt="Civira dashboard preview" className="hero-dashboard-image" />
+          <img src="/images/people-using-computer-laptop.jpg" alt="Civira dashboard preview" className="hero-dashboard-image" />
         </div>
       </section>
 
@@ -72,7 +63,7 @@ export default function Landing({ onNavigate }) {
         </div>
         <div className="tools-panel">
           <div className="tools-chart" aria-hidden="true">
-            <img src="/images/hiring-analytics.svg" alt="Hiring analytics charts" className="tools-chart-image" />
+            <img src="/images/notebook-office-desk-used-by-hr-expert-vetting-applicants (1).jpg" alt="Hiring analytics charts" className="tools-chart-image" />
           </div>
           <div className="tools-content">
             <h3>Built for Applicants and Hiring Teams</h3>
@@ -103,7 +94,7 @@ export default function Landing({ onNavigate }) {
             <div className="mini-stat">1,928<br /><span>Applications</span></div>
             <div className="mini-stat">85%<br /><span>Success Rate</span></div>
             <div className="mini-graph" />
-            <img src="/images/candidate-success.svg" alt="Candidate success illustration" className="candidate-visual" />
+            <img src="/images/black-businessman-with-tablet.jpg" alt="Candidate success illustration" className="candidate-visual" />
           </div>
           <div className="candidate-points">
             <h3>Get Matched to the Right Roles</h3>
@@ -122,16 +113,16 @@ export default function Landing({ onNavigate }) {
         </div>
         <div className="success-cards">
           <article className="success-card">
-            <img src="/images/candidate-success.svg" alt="Wilson Thompson" className="avatar" />
+            <img src="/images/black-businessman-with-tablet.jpg" alt="Wilson Thompson" className="avatar" />
             <h3>Wilson Thompson</h3>
-            <p>“I could track each stage clearly and prepare better.”</p>
+            <p>"I could track each stage clearly and prepare better."</p>
           </article>
           <article className="success-card success-card-highlight">
             <div className="success-value">85%</div>
             <p>Faster shortlisting and better candidate experience.</p>
           </article>
           <article className="success-card">
-            <img src="/images/candidate-success.svg" alt="David Anderson" className="avatar" />
+            <img src="/images/people-using-computer-laptop.jpg" alt="David Anderson" className="avatar" />
             <h3>David Anderson</h3>
             <p>“Scorecards helped our team make fair, confident decisions.”</p>
           </article>
@@ -164,26 +155,6 @@ export default function Landing({ onNavigate }) {
           <h3>Civira</h3>
           <p>Join a fair hiring ecosystem for candidates and recruiters.</p>
           <button className="btn-primary" onClick={() => onNavigate('login')}>Register</button>
-        </div>
-        <div className="footer-links">
-          <div>
-            <h4>Quick Links</h4>
-            <p>Home</p>
-            <p>Features</p>
-            <p>Pricing</p>
-          </div>
-          <div>
-            <h4>Support</h4>
-            <p>Contact</p>
-            <p>Guides</p>
-            <p>Privacy</p>
-          </div>
-          <div>
-            <h4>Resources</h4>
-            <p>Blog</p>
-            <p>Case Studies</p>
-            <p>Documentation</p>
-          </div>
         </div>
       </footer>
     </div>
